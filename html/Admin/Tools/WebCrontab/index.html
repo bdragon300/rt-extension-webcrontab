@@ -1,0 +1,88 @@
+<& /Admin/Elements/Header, Title => $title &>
+<& /Elements/Tabs &>
+
+<& /Elements/ListActions, actions => \@results &>
+
+<form action="/Admin/Tools/WebCrontab" method="post">
+<table id="crontab-events">
+<tr><th>Rule</th><th>Command</th><th>Delete?</th></tr>
+% my $i = 0;
+% foreach (@events) {
+	<tr>
+		<td><span class="input"><input name="rule<% $i %>" value="<% $_->datetime %>" class="crontab-rule" placeholder="0 */2 10-20,30 * *" /></span></td>
+		<td><span class="input"><textarea name="command<% $i %>" class="crontab-command" placeholder="command?"><% $_->command %></textarea></span></td>
+		<td><span class="input"><input name="delete<% $i %>" type="checkbox" class="crontab-delete" /></span></td>
+	</tr>
+% $i++;
+% }
+</table>
+<input id="crontab-add-event" class="button" type="button" value="Add event" />
+<& /Elements/Submit, Name => 'crontab-submit', Label => loc('Save Changes') &>
+</form>
+
+<script type="text/javascript">
+	var last_event_num = <% $i %>;
+	// jQuery(document).load(function() {
+		jQuery("#crontab-add-event").click(function() {
+			jQuery("table#crontab-events").append("<tr> \
+				<td><span class=\"input\"><input name=\"rule" + last_event_num + "\" class=\"crontab-rule text\" placeholder=\"0 */2 10-20,30 * *\" /></span></td> \
+				<td><span class=\"input\"><textarea name=\"command" + last_event_num + "\" class=\"crontab-command text\" placeholder=\"command?\"></textarea></span></td> \
+				<td><span class=\"input\"><input name=\"delete" + last_event_num + "\" type=\"checkbox\" class=\"crontab-delete checkbox\" /></span></td> \
+			</tr>");
+			last_event_num++;
+		});
+	// });
+</script>
+
+<%INIT>
+
+use Config::Crontab;
+use File::Find;
+
+my $title = loc('RT crontab configuration');
+unless ($session{'CurrentUser'}->HasRight( Object=> $RT::System, Right => 'SuperUser')) {
+ Abort(loc('This feature is only available to system administrators'));
+}
+
+my $ct = new Config::Crontab;
+$ct->read || RT::Logger->warning("user crontab does not exist and will be created");
+my @events = $ct->select( -type => 'event' );
+my $modules = {};
+foreach my $class (qw( Search Condition Action )) {
+    File::Find::find(sub {
+        push @{$modules->{$class}}, $1 if /^(?!Generic|UserDefined)(\w+)\.pm$/i
+    }, grep -d, map "$_/RT/$class", @INC);
+}
+my $old_crontab_dump = $ct->dump;
+
+# Handle POST request
+my @results;
+my @new_events;
+if ($ARGS{'crontab-submit'}) {
+	foreach (sort {$a <=> $b} map /(\d+)/, grep /^rule(\d+)$/, keys %ARGS) {
+		my ($rule, $command, $delete) = ($ARGS{"rule$_"}, $ARGS{"command$_"}, $ARGS{"delete$_"});
+		next if defined($delete);
+		next if ( ! defined $rule || $rule eq "");
+		next if ( ! defined $command || $command eq "");
+
+        if ($rule =~ /^(([\d,*\/-]+ ){4}[\d,*\/-]+)|(@[a-z]+)$/) {
+        	push @new_events, new Config::Crontab::Event( -datetime => $rule, -command => $command );
+		} else {
+			push @results, "ERROR: incorrect time rule: " . $rule;
+		}
+	}
+
+	my $cb = new Config::Crontab::Block( -lines => \@new_events );
+	my $ct = new Config::Crontab;
+	$ct->blocks([$cb]);
+	print $ct->data;
+	push (@results, $ct->error) unless $ct->write;
+
+	push @results, "Crontab updated" unless (@results || $ct->dump eq $old_crontab_dump);
+	@events = @new_events;
+}
+</%INIT>
+
+<%ARGS>
+
+</%ARGS>
