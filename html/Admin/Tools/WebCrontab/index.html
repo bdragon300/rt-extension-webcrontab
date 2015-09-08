@@ -3,32 +3,132 @@
 
 <& /Elements/ListActions, actions => \@results &>
 
+
+<style>
+	table.crontab-event {
+		border: 1px solid #999;
+		border-radius: 4px;
+		margin-bottom: 5px;
+		padding: 5px;
+	}
+	table.crontab-event span.label {
+		display: block;
+		text-align: left;
+	}
+	table.crontab-event td {
+		vertical-align: top;
+		padding: 0 5px;
+	}
+</style>
 <form action="/Admin/Tools/WebCrontab" method="post">
-<table id="crontab-events">
-<tr><th>Rule</th><th>Command</th><th>Delete?</th></tr>
+<div id="crontab-events">
 % my $i = 0;
-% foreach (@events) {
-	<tr>
-		<td><span class="input"><input name="rule<% $i %>" value="<% $_->datetime %>" class="crontab-rule" placeholder="0 */2 10-20,30 * *" /></span></td>
-		<td><span class="input"><textarea name="command<% $i %>" class="crontab-command" placeholder="command?"><% $_->command %></textarea></span></td>
-		<td><span class="input"><input name="delete<% $i %>" type="checkbox" class="crontab-delete" /></span></td>
-	</tr>
+% foreach my $event (@events) {
+<table class="crontab-event">
+	<tr><td>
+		<table>
+			<tr>
+				<td>
+					<span class="label">Rule</span>
+					<input name="rule<% $i %>" value="<% $event->datetime %>" class="crontab-rule" placeholder="0 */2 10-20,30 * *" />
+				</td>
+				<td>
+					<input name="delete<% $i %>" class="crontab-delete checkbox" type="checkbox">DELETE?
+				</td>
+			</tr>
+		</table>
+	</td></tr>
+<tr><td>
+	<table>
+		<tr><td>
+%    my $cmd = $event->command;
+%    my $prev_class;
+%    unless ($cmd =~ /^[^\s]*rt-crontool/) {
+%		$RT::Logger->warning("Seems that " . $cmd . " is not rt-crontool call");
+%		next;
+%    }
+%    foreach my $arg (@classes) {
+%
+%		my $arg_val;
+% 		if ($cmd =~ /--$arg\s+(['"].+)/) {
+%			$arg_val = $1;
+%			
+%			#find first non-escaped quote symbol
+%			$arg_val =~ /(?<=[^\\])'/;
+%			my $e = $-[0];
+%			$arg_val = substr($arg_val, 0, $e + 1);
+%		} elsif ($cmd =~ /--$arg\s+([^\s]+)/) {
+%			$arg_val = $1;
+%		}
+%
+%		$arg_val =~ s/^'(.*)'$/$1/g; # unquote
+%		$arg_val =~ s/\\([\\'])/$1/g; # unescape
+%
+%       $arg =~ /([\w]+)/;
+%       print '</td><td>' if (defined $prev_class && $1 ne $prev_class);
+%       $prev_class = $1;
+%		if ($arg =~ /-arg$/) {
+	<div><span class="label"><% $arg %></span>
+	<textarea name="<% lc $arg . $i %>"><% $arg_val %></textarea></div>
+%       } else {
+	<div><span class="label"><% $arg %></span>
+	<select name="<% lc $arg . $i %>">
+		<option value=""></option>
+%			foreach (@{$module_list{ucfirst $arg}}) {
+		<option value="<% $_ %>" <% (defined $arg_val && $_ eq $arg_val) ? 'selected' : '' %>><% $_ %></option>
+%			}
+	</select></div>
+%		}
+%    }
+
 % $i++;
-% }
+		</td></tr>
+	</table>
+</td></tr>
 </table>
+% }
+</div>
 <input id="crontab-add-event" class="button" type="button" value="Add event" />
 <& /Elements/Submit, Name => 'crontab-submit', Label => loc('Save Changes') &>
+
 </form>
 
 <script type="text/javascript">
 	var last_event_num = <% $i %>;
+	var html = 
+	'<table class="crontab-event"><tr><td>' +
+		'<table><tr>' +
+			'<td><span class="label">Rule</span><input name="rule%d" class="crontab-rule" placeholder="0 */2 10-20,30 * *" /></td>' +
+			'<td><input name="delete<% $i %>" class="crontab-delete checkbox" type="checkbox">DELETE?</td>' +
+		'</tr></table>' +
+	'</td></tr>' +
+	'<tr><td>' +
+		'<table><tr><td>' +
+% my $p;
+% foreach my $class (@classes) {
+%     $class =~ /([\w]+)/;
+%     print '\'</td><td>\' +' if (defined $p && $1 ne $p);
+%     $p = $1;
+%     if ($class =~ /-arg$/) {
+		'<div><span class="label"><% $class %></span>' +
+		'<textarea name="<% lc $class %>%d"></textarea></div>' +
+%     } else {
+		'<div><span class="label"><% $class %></span>' +
+		'<select name="<% lc $class %>%d">' +
+		'<option value=""></option>' +
+%         foreach (@{$module_list{ucfirst $class}}) {
+		'<option value="<% $_ %>"><% $_ %></option>' +
+%         }
+		'</select></div>' +
+%     }
+% }
+		'</td></tr></table>' +
+	'</td></tr></table>';
+
 	// jQuery(document).load(function() {
 		jQuery("#crontab-add-event").click(function() {
-			jQuery("table#crontab-events").append("<tr> \
-				<td><span class=\"input\"><input name=\"rule" + last_event_num + "\" class=\"crontab-rule text\" placeholder=\"0 */2 10-20,30 * *\" /></span></td> \
-				<td><span class=\"input\"><textarea name=\"command" + last_event_num + "\" class=\"crontab-command text\" placeholder=\"command?\"></textarea></span></td> \
-				<td><span class=\"input\"><input name=\"delete" + last_event_num + "\" type=\"checkbox\" class=\"crontab-delete checkbox\" /></span></td> \
-			</tr>");
+			str = html.replace(/%d/g, last_event_num);
+			jQuery("#crontab-events").append(str);
 			last_event_num++;
 		});
 	// });
@@ -38,6 +138,7 @@
 
 use Config::Crontab;
 use File::Find;
+#use RT::Extension::WebCrontab;
 
 my $title = loc('RT crontab configuration');
 unless ($session{'CurrentUser'}->HasRight( Object=> $RT::System, Right => 'SuperUser')) {
@@ -47,29 +148,99 @@ unless ($session{'CurrentUser'}->HasRight( Object=> $RT::System, Right => 'Super
 my $ct = new Config::Crontab;
 $ct->read || RT::Logger->warning("user crontab does not exist and will be created");
 my @events = $ct->select( -type => 'event' );
-my $modules = {};
-foreach my $class (qw( Search Condition Action )) {
-    File::Find::find(sub {
-        push @{$modules->{$class}}, $1 if /^(?!Generic|UserDefined)(\w+)\.pm$/i
-    }, grep -d, map "$_/RT/$class", @INC);
-}
 my $old_crontab_dump = $ct->dump;
 
-# Handle POST request
+my @classes = qw(search search-arg condition condition-arg action action-arg template transaction transaction-type);
+
+# Fill available values for each command arg
+my %module_list = (
+	'Transaction' => [qw! first last all !],
+
+	'Transaction-type' => [qw! 
+		CommentEmailRecord
+		EmailRecord
+		Correspond
+		Comment
+		CustomField
+		Untake
+		Take
+		Force
+		Steal
+		Give
+		AddWatcher
+		DelWatcher
+		Subject
+		Addlink
+		DeleteLink
+		Told
+		Set
+		PurgeTransaction
+		AddReminder
+		OpenReminder
+		ResolveReminder !]
+);
+
+foreach my $class (qw( Search Condition Action )) {
+	File::Find::find(sub {
+		push @{$module_list{$class}}, "RT::${class}::$1" if /^(?!Generic|UserDefined)(\w+)\.pm$/i;
+	}, grep -d, map "$_/RT/$class", @INC);
+}
+
+# Templates
+my $tpls = RT::Templates->new( $RT::SystemUser );
+$tpls->LimitToGlobal();
+while (my $tpl = $tpls->Next) {
+	push @{$module_list{'Template'}}, $tpl->Name;
+}
+
 my @results;
 my @new_events;
+
+# Handle POST request
 if ($ARGS{'crontab-submit'}) {
-	foreach (sort {$a <=> $b} map /(\d+)/, grep /^rule(\d+)$/, keys %ARGS) {
-		my ($rule, $command, $delete) = ($ARGS{"rule$_"}, $ARGS{"command$_"}, $ARGS{"delete$_"});
+	foreach my $arg_num (sort {$a <=> $b} map /(\d+)/, grep /^rule(\d+)$/, keys %ARGS) { # sorted rule[0-9]+ POST params
+		my ($rule, $delete) = ($ARGS{"rule$arg_num"}, $ARGS{"delete$arg_num"});
 		next if defined($delete);
 		next if ( ! defined $rule || $rule eq "");
-		next if ( ! defined $command || $command eq "");
 
-        if ($rule =~ /^(([\d,*\/-]+ ){4}[\d,*\/-]+)|(@[a-z]+)$/) {
-        	push @new_events, new Config::Crontab::Event( -datetime => $rule, -command => $command );
-		} else {
+        if ($rule !~ /^(([\d,*\/-]+ ){4}[\d,*\/-]+)|(@[a-z]+)$/) {
 			push @results, "ERROR: incorrect time rule: " . $rule;
+			next;
 		}
+
+		my @cmd_params;
+		foreach my $class (grep !/-arg$/, @classes) { # by each class name
+			my $arg = $ARGS{lc $class . $arg_num};
+
+			next unless defined $arg;
+			next if $arg eq "";
+			next unless grep {$arg == $_} @{$module_list{ucfirst $class}}; # skip if no such module send in arg
+			$arg = "'$arg'"; # quotation if spaces found
+
+			push @cmd_params, '--' . lc $class;
+			push @cmd_params, $arg;
+
+			my $classarg = lc $class . '-arg';
+			next unless exists $ARGS{$classarg . $arg_num};
+
+			my $arg_arg = $ARGS{$classarg . $arg_num};
+			next unless $arg_arg;
+			next if $arg_arg eq "";
+
+			if (grep $classarg, @classes)
+			{
+				$arg_arg =~ s/([\\'])/\\$1/g; # sanitizing
+				$arg_arg = "'$arg_arg'"; # quotation
+
+				push @cmd_params, '--' . $classarg;
+				push @cmd_params, $arg_arg;
+			}
+		}
+		next unless scalar(@cmd_params);
+
+		my $cmd_exe = '/usr/local/bin/rt-crontool'; # TODO: automatic determine path
+		my $cmd = join(' ', ($cmd_exe, @cmd_params));
+        push @new_events, new Config::Crontab::Event( -datetime => $rule, -command => $cmd );
 	}
 
 	my $cb = new Config::Crontab::Block( -lines => \@new_events );
