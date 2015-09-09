@@ -5,26 +5,100 @@
 
 
 <style>
-	table.crontab-event {
+	table.crontab-event, div#crontab-env-vars {
 		border: 1px solid #999;
 		border-radius: 4px;
 		margin-bottom: 5px;
 		padding: 5px;
 	}
-	table.crontab-event span.label {
+	.crontab-event span.label {
 		display: block;
 		text-align: left;
 	}
-	table.crontab-event td {
+	.crontab-event td {
 		vertical-align: top;
 		padding: 0 5px;
 	}
 </style>
 <form action="/Admin/Tools/WebCrontab" method="post">
-<div id="crontab-events">
 % my $i = 0;
+<&| /Widgets/TitleBox,title => 'Environment variables', class=>'crontab-env-vars' &>
+<div id="crontab-env-vars-container">
+	<div id="crontab-new-env" style="display: none">
+		<div class="crontab-env">
+			<select name="env-name%d">
+%     foreach (@allowed_env_vars) {
+				<option value=""></option>
+				<option value="<% $_ %>"><% $_ %></option>
+%     }
+			</select>
+			<input type="text" name="env-val%d" />
+			<input name="env-delete%d" class="crontab-delete checkbox" type="checkbox">DELETE?
+		</div>
+	</div>
+
+% foreach my $env (@env_vars) {
+	<div class="crontab-env">
+		<select name="env-name<% $i %>">
+%     foreach (@allowed_env_vars) {
+			<option value=""></option>
+			<option value="<% $_ %>" <% (defined $env->name && $_ eq $env->name) ? 'selected' : '' %>><% $_ %></option>
+%     }
+		</select>
+%		my $val = $env->value;
+%		$val =~ s/^'(.*)'$/$1/g; # unquote
+%		$val =~ s/\\([\\'])/$1/g; # unescape
+		<input type="text" name="env-val<% $i %>" value="<% $val %>" />
+		<input name="env-delete<% $i %>" class="crontab-delete checkbox" type="checkbox">DELETE?
+	</div>
+%     $i++;
+% }
+</div>
+<input id="crontab-add-env-var" class="button" type="button" value="Add variable" />
+</&>
+
+<div id="crontab-events">
+	<div id="crontab-new-event" style="display: none">
+		<&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event' &>
+		<table><tr><td>
+			<table><tr>
+				<td><span class="label">Rule</span><input name="rule%d" class="crontab-rule" placeholder="0 */2 10-20,30 * *" /></td>
+				<td><input name="delete%d" class="crontab-delete checkbox" type="checkbox">DELETE?</td>
+			</tr></table>
+		</td></tr>
+		<tr><td>
+			<table><tr><td>
+% my $p;
+% foreach my $class (@classes) {
+%     $class =~ /([\w]+)/;
+%     print '</td><td>' if (defined $p && $1 ne $p);
+%     $p = $1;
+%     if ($class =~ /-arg$/) {
+			<div>
+				<span class="label"><% $class %></span>
+				<textarea name="<% lc $class %>%d"></textarea>
+			</div>
+%     } else {
+			<div>
+				<span class="label"><% $class %></span>
+				<select name="<% lc $class %>%d">
+					<option value=""></option>
+%         foreach (@{$module_list{ucfirst $class}}) {
+					<option value="<% $_ %>"><% $_ %></option>
+%         }
+				</select>
+			</div>
+%     }
+% }
+			</td></tr></table>
+		</td></tr></table>
+	</&>
+	</div>
+
+% $i = 0;
 % foreach my $event (@events) {
-<table class="crontab-event">
+<&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event' &>
+<table>
 	<tr><td>
 		<table>
 			<tr>
@@ -68,16 +142,20 @@
 %       print '</td><td>' if (defined $prev_class && $1 ne $prev_class);
 %       $prev_class = $1;
 %		if ($arg =~ /-arg$/) {
-	<div><span class="label"><% $arg %></span>
-	<textarea name="<% lc $arg . $i %>"><% $arg_val %></textarea></div>
+	<div>
+		<span class="label"><% $arg %></span>
+		<textarea name="<% lc $arg . $i %>"><% $arg_val %></textarea>
+	</div>
 %       } else {
-	<div><span class="label"><% $arg %></span>
-	<select name="<% lc $arg . $i %>">
-		<option value=""></option>
+	<div>
+		<span class="label"><% $arg %></span>
+		<select name="<% lc $arg . $i %>">
+			<option value=""></option>
 %			foreach (@{$module_list{ucfirst $arg}}) {
-		<option value="<% $_ %>" <% (defined $arg_val && $_ eq $arg_val) ? 'selected' : '' %>><% $_ %></option>
+			<option value="<% $_ %>" <% (defined $arg_val && $_ eq $arg_val) ? 'selected' : '' %>><% $_ %></option>
 %			}
-	</select></div>
+		</select>
+	</div>
 %		}
 %    }
 
@@ -86,6 +164,7 @@
 	</table>
 </td></tr>
 </table>
+</&>
 % }
 </div>
 <input id="crontab-add-event" class="button" type="button" value="Add event" />
@@ -95,43 +174,20 @@
 
 <script type="text/javascript">
 	var last_event_num = <% $i %>;
-	var html = 
-	'<table class="crontab-event"><tr><td>' +
-		'<table><tr>' +
-			'<td><span class="label">Rule</span><input name="rule%d" class="crontab-rule" placeholder="0 */2 10-20,30 * *" /></td>' +
-			'<td><input name="delete<% $i %>" class="crontab-delete checkbox" type="checkbox">DELETE?</td>' +
-		'</tr></table>' +
-	'</td></tr>' +
-	'<tr><td>' +
-		'<table><tr><td>' +
-% my $p;
-% foreach my $class (@classes) {
-%     $class =~ /([\w]+)/;
-%     print '\'</td><td>\' +' if (defined $p && $1 ne $p);
-%     $p = $1;
-%     if ($class =~ /-arg$/) {
-		'<div><span class="label"><% $class %></span>' +
-		'<textarea name="<% lc $class %>%d"></textarea></div>' +
-%     } else {
-		'<div><span class="label"><% $class %></span>' +
-		'<select name="<% lc $class %>%d">' +
-		'<option value=""></option>' +
-%         foreach (@{$module_list{ucfirst $class}}) {
-		'<option value="<% $_ %>"><% $_ %></option>' +
-%         }
-		'</select></div>' +
-%     }
-% }
-		'</td></tr></table>' +
-	'</td></tr></table>';
+	var last_env_num = <% scalar(@env_vars) %>;
 
-	// jQuery(document).load(function() {
-		jQuery("#crontab-add-event").click(function() {
-			str = html.replace(/%d/g, last_event_num);
-			jQuery("#crontab-events").append(str);
-			last_event_num++;
-		});
-	// });
+	jQuery("#crontab-add-event").click(function() {
+		str = jQuery("#crontab-new-event").html().replace(/%d/g, last_event_num);
+		jQuery("#crontab-events").append(str);
+		last_event_num++;
+	});
+
+	jQuery("#crontab-add-env-var").click(function() {
+		str = jQuery("#crontab-new-env").html().replace(/%d/g, last_env_num);
+		jQuery("#crontab-env-vars-container").append(str);
+		last_env_num++;
+	});
+
 </script>
 
 <%INIT>
@@ -148,9 +204,11 @@ unless ($session{'CurrentUser'}->HasRight( Object=> $RT::System, Right => 'Super
 my $ct = new Config::Crontab;
 $ct->read || RT::Logger->warning("user crontab does not exist and will be created");
 my @events = $ct->select( -type => 'event' );
+my @env_vars = $ct->select( -type => 'env' );
 my $old_crontab_dump = $ct->dump;
 
 my @classes = qw(search search-arg condition condition-arg action action-arg template transaction transaction-type);
+my @allowed_env_vars = qw(MAILTO);
 
 # Fill available values for each command arg
 my %module_list = (
@@ -195,6 +253,7 @@ while (my $tpl = $tpls->Next) {
 
 my @results;
 my @new_events;
+my @new_env_vars;
 
 # Handle POST request
 if ($ARGS{'crontab-submit'}) {
@@ -243,15 +302,35 @@ if ($ARGS{'crontab-submit'}) {
         push @new_events, new Config::Crontab::Event( -datetime => $rule, -command => $cmd );
 	}
 
+	foreach my $arg_num (sort {$a <=> $b} map /(\d+)/, grep /^env-name(\d+)$/, keys %ARGS) { # sorted env-name[0-9]+ POST params
+		my ($env_name, $env_val, $delete) = ($ARGS{"env-name$arg_num"}, $ARGS{"env-val$arg_num"}, $ARGS{"env-delete$arg_num"});
+		next if defined($delete);
+		next unless defined $env_name;
+		next if $env_name eq '';
+		next unless grep {$_ eq $env_name} @allowed_env_vars;
+
+		$RT::Logger->error("^^^^^^^^^^". $arg_num. '-------');
+		
+		$env_val =~ s/([\\'])/\\$1/g; # sanitizing
+		$env_val = "'$env_val'"; # quotation
+		$RT::Logger->error("!!!!!!!!!!!!!!!!". $env_val. '???6?');
+
+		push @new_env_vars, new Config::Crontab::Env( -name => $env_name, -value => $env_val );
+	}
+
 	my $cb = new Config::Crontab::Block( -lines => \@new_events );
+	$cb->first(@new_env_vars);
+
 	my $ct = new Config::Crontab;
 	$ct->blocks([$cb]);
-	print $ct->data;
+	#print $ct->data;
 	push (@results, $ct->error) unless $ct->write;
 
 	push @results, "Crontab updated" unless (@results || $ct->dump eq $old_crontab_dump);
 	@events = @new_events;
+	@env_vars = @new_env_vars;
 }
+
 </%INIT>
 
 <%ARGS>
