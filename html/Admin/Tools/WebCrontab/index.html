@@ -297,7 +297,9 @@ if ($ARGS{'crontab-submit'}) {
 		}
 		next unless scalar(@cmd_params);
 
-		my $cmd_exe = '/usr/local/bin/rt-crontool'; # TODO: automatic determine path
+		my $cmd_path = $RT::BinPath;
+		$cmd_path =~ s/([^\/])$/$1\// if $cmd_path; #Add trailing slash
+		my $cmd_exe = $cmd_path . 'rt-crontool';
 		my $cmd = join(' ', ($cmd_exe, @cmd_params));
         push @new_events, new Config::Crontab::Event( -datetime => $rule, -command => $cmd );
 	}
@@ -308,12 +310,9 @@ if ($ARGS{'crontab-submit'}) {
 		next unless defined $env_name;
 		next if $env_name eq '';
 		next unless grep {$_ eq $env_name} @allowed_env_vars;
-
-		$RT::Logger->error("^^^^^^^^^^". $arg_num. '-------');
 		
 		$env_val =~ s/([\\'])/\\$1/g; # sanitizing
 		$env_val = "'$env_val'"; # quotation
-		$RT::Logger->error("!!!!!!!!!!!!!!!!". $env_val. '???6?');
 
 		push @new_env_vars, new Config::Crontab::Env( -name => $env_name, -value => $env_val );
 	}
