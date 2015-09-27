@@ -28,13 +28,13 @@ To use the extension write in RT_SiteConfig.pm following:
 For RT>=4.2:
 
 ```
-Plugin( "RT::Extension::WebConfig" );
+Plugin( "RT::Extension::WebCrontab" );
 ```
 
 For RT<4.2:
 
 ```
-Set(@Plugins, qw(RT::Extension::WebConfig));
+Set(@Plugins, qw(RT::Extension::WebCrontab));
 ```
 
 After installing you may need to clean Mason cache and restart RT process.
