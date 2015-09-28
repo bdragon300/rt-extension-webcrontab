@@ -5,12 +5,6 @@
 
 
 <style>
-	table.crontab-event, div#crontab-env-vars {
-		border: 1px solid #999;
-		border-radius: 4px;
-		margin-bottom: 5px;
-		padding: 5px;
-	}
 	.crontab-event span.label {
 		display: block;
 		text-align: left;
@@ -22,7 +16,7 @@
 </style>
 <form action="/Admin/Tools/WebCrontab" method="post">
 % my $i = 0;
-<&| /Widgets/TitleBox,title => 'Environment variables', class=>'crontab-env-vars' &>
+<&| /Widgets/TitleBox,title => 'Environment variables', class=>'crontab-env-vars', 'rolledup'=>0 &>
 <div id="crontab-env-vars-container">
 	<div id="crontab-new-env" style="display: none">
 		<div class="crontab-env">
@@ -59,10 +53,10 @@
 
 <div id="crontab-events">
 	<div id="crontab-new-event" style="display: none">
-		<&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event' &>
+		<&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event', rolledup=>0 &>
 		<table><tr><td>
 			<table><tr>
-				<td><span class="label">Rule</span><input name="rule%d" class="crontab-rule" placeholder="0 */2 10-20,30 * *" /></td>
+				<td><span class="label">Rule</span><input name="rule%d" class="crontab-rule" placeholder="min hour day month dow" /></td>
 				<td><input name="delete%d" class="crontab-delete checkbox" type="checkbox">DELETE?</td>
 			</tr></table>
 		</td></tr>
@@ -97,14 +91,14 @@
 
 % $i = 0;
 % foreach my $event (@events) {
-<&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event' &>
+<&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event', rolledup=>0 &>
 <table>
 	<tr><td>
 		<table>
 			<tr>
 				<td>
 					<span class="label">Rule</span>
-					<input name="rule<% $i %>" value="<% $event->datetime %>" class="crontab-rule" placeholder="0 */2 10-20,30 * *" />
+					<input name="rule<% $i %>" value="<% $event->datetime %>" class="crontab-rule" placeholder="min hour day month dow" />
 				</td>
 				<td>
 					<input name="delete<% $i %>" class="crontab-delete checkbox" type="checkbox">DELETE?
@@ -123,7 +117,7 @@
 %    }
 %    foreach my $arg (@classes) {
 %
-%		my $arg_val;
+%		my $arg_val = "";
 % 		if ($cmd =~ /--$arg\s+(['"].+)/) {
 %			$arg_val = $1;
 %			
@@ -273,7 +267,7 @@ if ($ARGS{'crontab-submit'}) {
 
 			next unless defined $arg;
 			next if $arg eq "";
-			next unless grep {$arg == $_} @{$module_list{ucfirst $class}}; # skip if no such module send in arg
+			next unless grep {$arg eq $_} @{$module_list{ucfirst $class}}; # skip if no such module send in arg
 			$arg = "'$arg'"; # quotation if spaces found
 
 			push @cmd_params, '--' . lc $class;
@@ -308,12 +302,9 @@ if ($ARGS{'crontab-submit'}) {
 		next unless defined $env_name;
 		next if $env_name eq '';
 		next unless grep {$_ eq $env_name} @allowed_env_vars;
-
-		$RT::Logger->error("^^^^^^^^^^". $arg_num. '-------');
 		
 		$env_val =~ s/([\\'])/\\$1/g; # sanitizing
 		$env_val = "'$env_val'"; # quotation
-		$RT::Logger->error("!!!!!!!!!!!!!!!!". $env_val. '???6?');
 
 		push @new_env_vars, new Config::Crontab::Env( -name => $env_name, -value => $env_val );
 	}
