@@ -1,5 +1,5 @@
 ---
-abstract: 'Allows to edit RT crontab via web interface'
+abstract: 'Allows to manage RT crontab via web interface'
 author:
   - 'Igor Derkach <gosha753951@gmail.com>'
 build_requires:
@@ -19,7 +19,7 @@ no_index:
     - inc
     - html
 requires:
-  Config::Crontab: 1.40
+  Config::Crontab: 1.33
   perl: 5.8.3
 resources:
   license: http://dev.perl.org/licenses/

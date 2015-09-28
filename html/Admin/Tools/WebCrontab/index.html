@@ -5,13 +5,14 @@
 
 
 <style>
-	.crontab-event span.label {
+	.el span.label {
 		display: block;
 		text-align: left;
 	}
-	.crontab-event td {
+	.elgrp div.el {
+		display: inline-block;
+		margin: 10px 5px;
 		vertical-align: top;
-		padding: 0 5px;
 	}
 </style>
 <form action="/Admin/Tools/WebCrontab" method="post">
@@ -19,31 +20,39 @@
 <&| /Widgets/TitleBox,title => 'Environment variables', class=>'crontab-env-vars', 'rolledup'=>0 &>
 <div id="crontab-env-vars-container">
 	<div id="crontab-new-env" style="display: none">
-		<div class="crontab-env">
-			<select name="env-name%d">
+		<div class="crontab-env elgrp">
+			<div class="el">
+				<select name="env-name%d">
 %     foreach (@allowed_env_vars) {
-				<option value=""></option>
-				<option value="<% $_ %>"><% $_ %></option>
+					<option value=""></option>
+					<option value="<% $_ %>"><% $_ %></option>
 %     }
-			</select>
-			<input type="text" name="env-val%d" />
-			<input name="env-delete%d" class="crontab-delete checkbox" type="checkbox">DELETE?
+				</select>
+				<input type="text" name="env-val%d" />
+			</div>
+			<div class="el">
+				<input id="env-delete%d" name="env-delete%d" class="crontab-delete checkbox" type="checkbox"><label for="env-delete%d">DELETE?</label>
+			</div>
 		</div>
 	</div>
 
 % foreach my $env (@env_vars) {
-	<div class="crontab-env">
-		<select name="env-name<% $i %>">
+	<div class="crontab-env elgrp">
+		<div class="el">
+			<select name="env-name<% $i %>">
 %     foreach (@allowed_env_vars) {
-			<option value=""></option>
-			<option value="<% $_ %>" <% (defined $env->name && $_ eq $env->name) ? 'selected' : '' %>><% $_ %></option>
+				<option value=""></option>
+				<option value="<% $_ %>" <% (defined $env->name && $_ eq $env->name) ? 'selected' : '' %>><% $_ %></option>
 %     }
-		</select>
+			</select>
 %		my $val = $env->value;
 %		$val =~ s/^'(.*)'$/$1/g; # unquote
 %		$val =~ s/\\([\\'])/$1/g; # unescape
-		<input type="text" name="env-val<% $i %>" value="<% $val %>" />
-		<input name="env-delete<% $i %>" class="crontab-delete checkbox" type="checkbox">DELETE?
+			<input type="text" name="env-val<% $i %>" value="<% $val %>" />
+		</div>
+		<div class="el">
+			<input id="env-delete<% $i %>" name="env-delete<% $i %>" class="crontab-delete checkbox" type="checkbox"><label for="env-delete<% $i %>">DELETE?</label>
+		</div>
 	</div>
 %     $i++;
 % }
@@ -53,19 +62,17 @@
 
 <div id="crontab-events">
 	<div id="crontab-new-event" style="display: none">
-		<&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event', rolledup=>0 &>
-		<table><tr><td>
-			<table><tr>
-				<td><span class="label">Rule</span><input name="rule%d" class="crontab-rule" placeholder="min hour day month dow" /></td>
-				<td><input name="delete%d" class="crontab-delete checkbox" type="checkbox">DELETE?</td>
-			</tr></table>
-		</td></tr>
-		<tr><td>
-			<table><tr><td>
+		<&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event' &>
+		<div class="elgrp">
+			<div class="el"><span class="label">Rule</span><input name="rule%d" class="crontab-rule" placeholder="min hour day month dow" /></div>
+			<div class="el"><input id="delete%d" name="delete%d" class="crontab-delete checkbox" type="checkbox"><label for="delete%d">DELETE?</label></div>
+		</div>
+		<div class="elgrp">
+			<div class="el">
 % my $p;
 % foreach my $class (@classes) {
 %     $class =~ /([\w]+)/;
-%     print '</td><td>' if (defined $p && $1 ne $p);
+%     print '</div><div class="el">' if (defined $p && $1 ne $p);
 %     $p = $1;
 %     if ($class =~ /-arg$/) {
 			<div>
@@ -84,31 +91,25 @@
 			</div>
 %     }
 % }
-			</td></tr></table>
-		</td></tr></table>
+			</div>
+		</div>
 	</&>
 	</div>
 
 % $i = 0;
 % foreach my $event (@events) {
-<&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event', rolledup=>0 &>
-<table>
-	<tr><td>
-		<table>
-			<tr>
-				<td>
-					<span class="label">Rule</span>
-					<input name="rule<% $i %>" value="<% $event->datetime %>" class="crontab-rule" placeholder="min hour day month dow" />
-				</td>
-				<td>
-					<input name="delete<% $i %>" class="crontab-delete checkbox" type="checkbox">DELETE?
-				</td>
-			</tr>
-		</table>
-	</td></tr>
-<tr><td>
-	<table>
-		<tr><td>
+<&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event' &>
+	<div class="elgrp">
+		<div class="el">
+			<span class="label">Rule</span>
+			<input name="rule<% $i %>" value="<% $event->datetime %>" class="crontab-rule" placeholder="min hour day month dow" />
+		</div>
+		<div class="el">
+			<input id="delete<% $i %>" name="delete<% $i %>" class="crontab-delete checkbox" type="checkbox"><label for="delete<% $i %>">DELETE?</label>
+		</div>
+	</div>
+	<div class="elgrp">
+		<div class="el">
 %    my $cmd = $event->command;
 %    my $prev_class;
 %    unless ($cmd =~ /^[^\s]*rt-crontool/) {
@@ -133,31 +134,29 @@
 %		$arg_val =~ s/\\([\\'])/$1/g; # unescape
 %
 %       $arg =~ /([\w]+)/;
-%       print '</td><td>' if (defined $prev_class && $1 ne $prev_class);
+%       print '</div><div class="el">' if (defined $prev_class && $1 ne $prev_class);
 %       $prev_class = $1;
 %		if ($arg =~ /-arg$/) {
-	<div>
-		<span class="label"><% $arg %></span>
-		<textarea name="<% lc $arg . $i %>"><% $arg_val %></textarea>
-	</div>
+			<div>
+				<span class="label"><% $arg %></span>
+				<textarea name="<% lc $arg . $i %>"><% $arg_val %></textarea>
+			</div>
 %       } else {
-	<div>
-		<span class="label"><% $arg %></span>
-		<select name="<% lc $arg . $i %>">
-			<option value=""></option>
+			<div>
+				<span class="label"><% $arg %></span>
+				<select name="<% lc $arg . $i %>">
+					<option value=""></option>
 %			foreach (@{$module_list{ucfirst $arg}}) {
-			<option value="<% $_ %>" <% (defined $arg_val && $_ eq $arg_val) ? 'selected' : '' %>><% $_ %></option>
+					<option value="<% $_ %>" <% (defined $arg_val && $_ eq $arg_val) ? 'selected' : '' %>><% $_ %></option>
 %			}
-		</select>
-	</div>
+				</select>
+			</div>
 %		}
 %    }
 
 % $i++;
-		</td></tr>
-	</table>
-</td></tr>
-</table>
+		</div>
+	</div>
 </&>
 % }
 </div>
@@ -291,7 +290,9 @@ if ($ARGS{'crontab-submit'}) {
 		}
 		next unless scalar(@cmd_params);
 
-		my $cmd_exe = '/usr/local/bin/rt-crontool'; # TODO: automatic determine path
+		my $cmd_path = $RT::BinPath;
+		$cmd_path =~ s/([^\/])$/$1\// if $cmd_path; #Add trailing slash
+		my $cmd_exe = $cmd_path . 'rt-crontool';
 		my $cmd = join(' ', ($cmd_exe, @cmd_params));
         push @new_events, new Config::Crontab::Event( -datetime => $rule, -command => $cmd );
 	}
