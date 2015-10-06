@@ -218,7 +218,6 @@ if ($ARGS{'crontab-submit'}) {
                 push @cmd_params, $arg_arg;
             }
         }
-        RT::Logger->debug(Dumper \@cmd_params);
         unless (@cmd_params) {
             $event_num++;
             next;
@@ -228,7 +227,6 @@ if ($ARGS{'crontab-submit'}) {
         $cmd_path =~ s/([^\/])$/$1\// if $cmd_path; #Add trailing slash
         my $cmd_exe = $cmd_path . 'rt-crontool';
         my $cmd = join(' ', ($cmd_exe, @cmd_params));
-        RT::Logger->debug(Dumper $cmd);
         push @new_events, new Config::Crontab::Event( -datetime => $expression, -command => $cmd );
 
         $event_num++;
