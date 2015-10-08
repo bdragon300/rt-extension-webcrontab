@@ -35,8 +35,8 @@
 % my $env_num = 1;
 % foreach my $env (@env_vars) {
 %     my $val = $env->value;
-%     $val =~ s/^'(.*)'$/$1/g; # unquote
-%     $val =~ s/\\([\\'])/$1/g; # unescape
+%     $val =~ s/^"(.*)"$/$1/g; # unquote
+%     $val =~ s/\\([\\"])/$1/g; # unescape
 %
 %     my $env_actual_values = {
 %         envname => [$env->name],
@@ -54,39 +54,30 @@
 % my $event_num = 1;
 % foreach my $event (@events) {
 %     my $cmd = $event->command;
+%     my @shwords = shellwords(($cmd));
 %
-%     unless ($cmd =~ /^[^\s]*rt-crontool/) {
+%     if ($shwords[0] !~ /.*rt-crontool$/) {
 %         $RT::Logger->warning("Seems that " . $cmd . " is not rt-crontool call");
 %         next;
+%     } else {
+%         shift @shwords;
 %     }
-%
+%     
 %     my $event_actual_values = {
 %         crontabexpr => [$event->datetime],
 %         values => {},
 %     };
-%     foreach my $class (@classes) {
-%         my $val = "";
-%         if ($cmd =~ /--$class\s+(['"].+)/) { # quoted string
-%             $val = $1;
-%             
-%             #find closing quote symbol
-%             $val =~ /(?<=[^\\])'/;
-%             my $e = $-[0];
-%             $val = substr($val, 0, $e + 1);
-%         } elsif ($cmd =~ /--$class\s+([^\s]+)/) { # non-quoted string
-%             $val = $1;
+%     while (@shwords) {
+%         my $shword = shift @shwords;
+%         if (my @c = grep { $shword eq ('--' . $_) } @classes) {
+%             my $class = $c[0];
+%             my $val = shift @shwords if (@shwords);
+%             $event_actual_values->{'values'}->{$class} = [$val];
 %         }
-% 
-%         $val =~ s/^'(.*)'$/$1/g; # unquote
-%         $val =~ s/\\([\\'])/$1/g; # unescape
-%
-%         $event_actual_values->{'values'}->{$class} = [$val];
 %     }
-%
 <& Elements/CrontabEvent, data => $event_data, actual_values => $event_actual_values, event_num => $event_num &>
 %     $event_num++;
 % }
-
 </div>
 <input id="crontab-add-event" class="button" type="button" value="Add event" />
 <& /Elements/Submit, Name => 'crontab-submit', Label => loc('Save Changes') &>
@@ -112,6 +103,7 @@
 
 use Config::Crontab;
 use File::Find;
+use Text::ParseWords;
 use Data::Dumper qw(Dumper);
 #use RT::Extension::WebCrontab;
 
@@ -197,7 +189,7 @@ if ($ARGS{'crontab-submit'}) {
             next unless defined $arg;
             next if $arg eq "";
             next unless grep {$arg eq $_} @{$module_list{lc $class}}; # skip if no such module send in arg
-            $arg = "'$arg'"; # quotation if spaces found
+            $arg = "\"$arg\""; # quotation
 
             push @cmd_params, '--' . lc $class;
             push @cmd_params, $arg;
@@ -211,8 +203,8 @@ if ($ARGS{'crontab-submit'}) {
 
             if (grep $classarg, @classes)
             {
-                $arg_arg =~ s/([\\'])/\\$1/g; # sanitizing
-                $arg_arg = "'$arg_arg'"; # quotation
+                $arg_arg =~ s/([\\"])/\\$1/g; # sanitizing
+                $arg_arg = "\"$arg_arg\""; # quotation
 
                 push @cmd_params, '--' . $classarg;
                 push @cmd_params, $arg_arg;
@@ -247,8 +239,8 @@ if ($ARGS{'crontab-submit'}) {
             next;
         }
         
-        $env_val =~ s/([\\'])/\\$1/g; # sanitizing
-        $env_val = "'$env_val'"; # quotation
+        $env_val =~ s/([\\"])/\\$1/g; # sanitizing
+        $env_val = "\"$env_val\""; # quotation
 
         push @new_env_vars, new Config::Crontab::Env( -name => $env_name, -value => $env_val );
 
