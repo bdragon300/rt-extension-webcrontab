@@ -3,7 +3,6 @@
 
 <& /Elements/ListActions, actions => \@results &>
 
-
 <style>
     .el span.label {
         display: block;
@@ -15,254 +14,81 @@
         vertical-align: top;
     }
 </style>
-% my $event_data = {
-%     captions => \@classes,
-%     data => \%module_list
-% };
-<div id="crontab-new-event" style="display: none">
-    <& Elements/CrontabEvent, dummy => 1, data => $event_data &>
-</div>
-% my $env_data = {
-%     envnames => \@allowed_env_vars
-% };
-<div id="crontab-new-env" style="display: none">
-    <& Elements/CrontabEnv, dummy => 1, data => $env_data &>
-</div>
-
-<form action="/Admin/Tools/WebCrontab" method="post">
-<&| /Widgets/TitleBox,title => 'Environment variables', class=>'crontab-env-vars-title', rolledup=>0 &>
-<div id="crontab-env-vars">
-% my $env_num = 1;
-% foreach my $env (@env_vars) {
-%     my $val = $env->value;
-%     $val =~ s/^"(.*)"$/$1/g; # unquote
-%     $val =~ s/\\([\\"])/$1/g; # unescape
-%
-%     my $env_actual_values = {
-%         envname => [$env->name],
-%         envvalue => [$val]
-%     };
-<& Elements/CrontabEnv, data => $env_data, actual_values => $env_actual_values, env_num => $env_num &>
-%     $env_num++;
-% }
-</div>
-<input id="crontab-add-env-var" class="button" type="button" value="Add variable" />
-</&>
 
 <div id="crontab-events">
-
-% my $event_num = 1;
-% foreach my $event (@events) {
-%     my $cmd = $event->command;
-%     my @shwords = shellwords(($cmd));
-%
-%     if ($shwords[0] !~ /.*rt-crontool$/) {
-%         $RT::Logger->warning("Seems that " . $cmd . " is not rt-crontool call");
-%         next;
-%     } else {
-%         shift @shwords;
-%     }
-%     
-%     my $event_actual_values = {
-%         crontabexpr => [$event->datetime],
-%         values => {},
-%     };
-%     while (@shwords) {
-%         my $shword = shift @shwords;
-%         if (my @c = grep { $shword eq ('--' . $_) } @classes) {
-%             my $class = $c[0];
-%             my $val = shift @shwords if (@shwords);
-%             $event_actual_values->{'values'}->{$class} = [$val];
-%         }
-%     }
-<& Elements/CrontabEvent, data => $event_data, actual_values => $event_actual_values, event_num => $event_num &>
-%     $event_num++;
-% }
+    <& Elements/CollectionTable, headers => $table_headers, rows => $table_rows &>
 </div>
-<input id="crontab-add-event" class="button" type="button" value="Add event" />
-<& /Elements/Submit, Name => 'crontab-submit', Label => loc('Save Changes') &>
 
+<form action="<% $web_path %>/Admin/Tools/WebCrontab/index.html" method="post">
+<&| /Widgets/TitleBox,title => 'Environment variables', rolledup=>0 &>
+    <div id="crontab-env">
+%       foreach my $env (@$available_env) {
+            <& Elements/CrontabEnv, variable_name => $env, variable_value => $crontab->{'env'}->{$env}, enabled => int(exists($crontab->{'env'}->{$env})) &>
+%       }
+    </div>
+    <& /Elements/Submit, Name => 'submit-env', Label => loc('Save Changes') &>
+</&>
 </form>
 
-<script type="text/javascript">
-    jQuery("#crontab-add-event").click(function() {
-        event_count = jQuery("#crontab-events > .crontab-event").size();
-        str = jQuery("#crontab-new-event").html().replace(/%d/g, event_count + 1);
-        jQuery("#crontab-events").append(str);
-    });
-
-    jQuery("#crontab-add-env-var").click(function() {
-        env_count = jQuery("#crontab-env-vars > .crontab-env").size();
-        str = jQuery("#crontab-new-env").html().replace(/%d/g, env_count + 1);
-        jQuery("#crontab-env-vars").append(str);
-    });
-
-</script>
-
 <%INIT>
-
-use Config::Crontab;
-use File::Find;
-use Text::ParseWords;
 use Data::Dumper qw(Dumper);
-#use RT::Extension::WebCrontab;
+use RT::Extension::WebCrontab;
 
-my $title = loc('RT crontab configuration');
+my $web_path = RT->Config->Get('WebPath') || "";
+if ($web_path =~ /\/$/) {
+    RT::Logger->warning("[RT::Extension::WebCrontab]: WebPath has trailing slash, it recommends to remove it");
+    $web_path =~ s/\/$//;
+}
+
+
+my $title = loc('Crontab configuration');
 unless ($session{'CurrentUser'}->HasRight( Object=> $RT::System, Right => 'SuperUser')) {
- Abort(loc('This feature is only available to system administrators'));
-}
-
-my $ct = new Config::Crontab;
-$ct->read || RT::Logger->warning("user crontab does not exist and will be created");
-my @events = $ct->select( -type => 'event' );
-my @env_vars = $ct->select( -type => 'env' );
-my $old_crontab_dump = $ct->dump;
-
-my @classes = qw(search search-arg condition condition-arg action action-arg template transaction transaction-type);
-my @allowed_env_vars = qw(MAILTO);
-
-# Fill available values for each command arg
-my %module_list = (
-    'transaction' => [qw! first last all !],
-
-    'transaction-type' => [qw! 
-        CommentEmailRecord
-        EmailRecord
-        Correspond
-        Comment
-        CustomField
-        Untake
-        Take
-        Force
-        Steal
-        Give
-        AddWatcher
-        DelWatcher
-        Subject
-        Addlink
-        DeleteLink
-        Told
-        Set
-        PurgeTransaction
-        AddReminder
-        OpenReminder
-        ResolveReminder !]
-);
-
-foreach my $class (qw( Search Condition Action )) {
-    File::Find::find(sub {
-        push @{$module_list{lc $class}}, "RT::${class}::$1" if /^(?!Generic|UserDefined)(\w+)\.pm$/i;
-    }, grep -d, map "$_/RT/$class", @INC);
-}
-
-# Templates
-my $tpls = RT::Templates->new( $RT::SystemUser );
-$tpls->LimitToGlobal();
-while (my $tpl = $tpls->Next) {
-    push @{$module_list{'template'}}, $tpl->Name;
+    Abort(loc('This feature is only available to system administrators'));
 }
 
 my @results;
-my @new_events;
-my @new_env_vars;
+my $available_env = RT::Extension::WebCrontab::get_available_env_vars();
 
-# Handle POST request
-if ($ARGS{'crontab-submit'}) {
-    my $event_num = 1;
-    while (defined $ARGS{"event${event_num}"}) {
-        my ($expression, $delete) = ($ARGS{"event${event_num}crontabexpr"}, $ARGS{"event${event_num}delete"});
-        if (defined($delete)) {
-            $event_num++;
-            next;
-        }
+if ($ARGS{'submit-env'}) {
+    my %new_env = map { $_ => $ARGS{"env-" . lc $_ . "-value"} } 
+        grep {$ARGS{"env-" . lc $_ . "-enabled"}} 
+        @$available_env;
 
-        if ($expression !~ /^(([\d,*\/-]+ ){4}[\d,*\/-]+)|(@[a-z]+)$/) {
-            push @results, "ERROR: incorrect time expression, event ${event_num}";
-            $event_num++;
-            next;
-        }
+    my ($res, $msg) = RT::Extension::WebCrontab::save_env(\%new_env);
 
-        my @cmd_params;
-        foreach my $class (grep !/-arg$/, @classes) { # by each class name
-            my $arg = $ARGS{"event${event_num}" . lc $class};
-
-            next unless defined $arg;
-            next if $arg eq "";
-            next unless grep {$arg eq $_} @{$module_list{lc $class}}; # skip if no such module send in arg
-            $arg = "\"$arg\""; # quotation
-
-            push @cmd_params, '--' . lc $class;
-            push @cmd_params, $arg;
-
-            my $classarg = lc $class . '-arg';
-            next unless exists $ARGS{"event${event_num}" . $classarg};
-
-            my $arg_arg = $ARGS{"event${event_num}" . $classarg};
-            next unless $arg_arg;
-            next if $arg_arg eq "";
-
-            if (grep $classarg, @classes)
-            {
-                $arg_arg =~ s/([\\"])/\\$1/g; # sanitizing
-                $arg_arg = "\"$arg_arg\""; # quotation
-
-                push @cmd_params, '--' . $classarg;
-                push @cmd_params, $arg_arg;
-            }
-        }
-        unless (@cmd_params) {
-            $event_num++;
-            next;
-        }
-
-        my $cmd_path = $RT::BinPath;
-        $cmd_path =~ s/([^\/])$/$1\// if $cmd_path; #Add trailing slash
-        my $cmd_exe = $cmd_path . 'rt-crontool';
-        my $cmd = join(' ', ($cmd_exe, @cmd_params));
-        push @new_events, new Config::Crontab::Event( -datetime => $expression, -command => $cmd );
-
-        $event_num++;
+    if ($res) {
+        push @results, loc('Crontab saved');
+    } else {
+        push @results, loc('ERROR: Cannot save crontab: [_1]', $msg);
     }
 
-    my $env_num = 1;
-    while (defined $ARGS{"env${env_num}"}) {
-        my ($env_name, $env_val, $delete) = ($ARGS{"env${env_num}name"}, $ARGS{"env${env_num}value"}, $ARGS{"env${env_num}delete"});
-        if (defined($delete)) {
-            $env_num++;
-            next;
-        }
-        unless (defined $env_name
-                && grep {$_ eq $env_name} @allowed_env_vars)
-        {
-            push @results, "ERROR: incorrect environment variable name, variable ${env_num}";
-            $env_num++;
-            next;
-        }
-        
-        $env_val =~ s/([\\"])/\\$1/g; # sanitizing
-        $env_val = "\"$env_val\""; # quotation
-
-        push @new_env_vars, new Config::Crontab::Env( -name => $env_name, -value => $env_val );
-
-        $env_num++;
-    }
-
-    unless (@results) {
-        my $cb = new Config::Crontab::Block( -lines => \@new_events );
-        $cb->first(@new_env_vars);
-
-        my $ct = new Config::Crontab;
-        $ct->blocks([$cb]);
-        #print $ct->data;
-        push (@results, $ct->error) unless $ct->write;
-
-        push @results, "Crontab updated" unless (@results || $ct->dump eq $old_crontab_dump);
-    }
-
-    @events = @new_events;
-    @env_vars = @new_env_vars;
+    MaybeRedirectForResults(
+        Actions   => \@results,
+        Path      => "/Admin/Tools/WebCrontab"
+    );
 }
 
+my $crontab = RT::Extension::WebCrontab::load_crontab();
+
+# Fill data for CollectionTable
+my $table_rows = [];
+my $table_headers = [loc('#'), loc('Expression'), loc('Search'), loc('Condition'), loc('Action'), loc('Template')];
+
+my $i = 0;
+while (defined($crontab->{'events'}->[$i])) {
+    my $e = $crontab->{'events'}->[$i];
+    unless ($e->{'skip'}) {
+        push @$table_rows, {
+            'link' => '/Admin/Tools/WebCrontab/edit.html?id=' . $i,
+            'cols' => [
+                $i,
+                map { defined($e->{$_}) ? loc($e->{$_}) : '' }
+                    ('expression', 'search', 'condition', 'action', 'template')
+            ],
+        };
+    }
+    $i++;
+}
 </%INIT>
 
 <%ARGS>

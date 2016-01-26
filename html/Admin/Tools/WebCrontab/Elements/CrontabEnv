@@ -1,32 +1,19 @@
 % my $val;
 <div class="crontab-env elgrp">
     <div class="el">
-        <select name="env<% $env_num %>name">
-% $val = (exists $actual_values->{'envname'}) ? @{$actual_values->{'envname'}}[0] : '';
-% foreach (@{$data->{'envnames'}}) {
-            <option value=""></option>
-            <option value="<% $_ %>" <% ($val && $_ eq $val) ? 'selected' : '' %>><% $_ %></option>
-% }
-        </select>
-% $val = (exists $actual_values->{'envvalue'}) ? @{$actual_values->{'envvalue'}}[0] : '';;
-        <input type="text" name="env<% $env_num %>value" value="<% $val %>" />
+        <label for="env-<% lc $variable_name %>-value"><% $variable_name %>:</label>
+%        
+%       $val = (defined $variable_value) ? $variable_value : '';
+        <input type="text" name="env-<% lc $variable_name %>-value" id="env-<% lc $variable_name %>-value" value="<% $val %>" />
+        <span style="margin-left: 10px">
+            <input type="checkbox" name="env-<% lc $variable_name %>-enabled" id="env-<% lc $variable_name %>-enabled" <% $enabled ? 'checked' : '' %>/>
+            <label for="env-<% lc $variable_name %>-enabled">Enabled</label>
+        </span>
     </div>
-    <div class="el">
-        <input id="env<% $env_num %>delete" name="env<% $env_num %>delete" class="checkbox" type="checkbox"><label for="env<% $env_num %>delete">DELETE?</label>
-    </div>
-    <input type="hidden" name="env<% $env_num %>" />
 </div>
 
-<%init>
-if ($dummy)
-{
-    $env_num = '%d';
-}
-</%init>
-
 <%args>
-$data => {}
-$actual_values => {}
-$dummy => 0
-$env_num => 1
+$variable_name => ''
+$variable_value => ''
+$enabled => 0
 </%args>

@@ -1,61 +1,53 @@
 % my $val;
-<&| /Widgets/TitleBox,title => 'Event ' . $event_num, class=>'crontab-event', 'rolledup'=>0 &>
+% @$captions = keys %$filling unless @$captions;
+%
+<&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event', 'rolledup'=>0 &>
     <div class="elgrp">
         <div class="el">
             <span class="label">Crontab expression</span>
-% $val = (exists $actual_values->{'crontabexpr'}) ? @{$actual_values->{'crontabexpr'}}[0] : '';
-            <input name="event<% $event_num %>crontabexpr" value="<% $val %>" placeholder="min hour day month dow" />
-        </div>
-        <div class="el">
-            <span class="label">&nbsp;</span>
-            <input id="event<% $event_num %>delete" name="event<% $event_num %>delete" class="checkbox" type="checkbox"><label for="event<% $event_num %>delete">DELETE?</label>
+% $val = (exists $data->{'expression'}) ? $data->{'expression'} : '';
+            <input name="expression" value="<% $val %>" placeholder="min hour day month dow" />
+            <input type="hidden" name="old-expression" value="<% $val %>" />
         </div>
     </div>
     <div class="elgrp">
         <div class="el">
-% my @prev_pieces;
-% foreach my $caption (@{$data->{'captions'}}) {
-%     my @pieces = split('-', $caption);
-%     print '</div><div class="el">' if (@prev_pieces && $pieces[0] ne $prev_pieces[0]);
-%     @prev_pieces = @pieces;
+%           my @prev_pieces;
+%           foreach my $caption (@$captions) {
+%               my @pieces = split('-', $caption);
+%               print '</div><div class="el">' if (@prev_pieces && $pieces[0] ne $prev_pieces[0]);
+%               @prev_pieces = @pieces;
 %
-%     $val = (exists $actual_values->{'values'}->{$caption}) ? @{$actual_values->{'values'}->{$caption}}[0] : '';
-%         if (defined $pieces[1] 
-%             && $pieces[1] eq 'arg') 
-%         {
-            <div>
-                <span class="label"><% $caption %></span>
-                <textarea name="event<% $event_num . $caption %>"><% $val %></textarea>
-            </div>
-%         } elsif (exists($data->{'data'}->{$caption})
-%                 && ref($data->{'data'}->{$caption}) eq 'ARRAY')
-%         {
-            <div>
-                <span class="label"><% $caption %></span>
-                <select name="event<% $event_num . $caption %>">
-                    <option value=""></option>
-%             foreach (sort @{$data->{'data'}->{$caption}}) {
-                    <option value="<% $_ %>" <% ($val && $_ eq $val) ? 'selected' : '' %>><% $_ %></option>
-%             }
-                </select>
-            </div>
-%         }
-%    }
+%               $val = (exists $data->{$caption}) ? $data->{$caption} : '';
+%               if (defined $pieces[1] 
+%                   && $pieces[1] eq 'arg') 
+%               {
+                    <div>
+                        <span class="label"><% $caption %></span>
+                        <textarea name="<%$caption %>"><% $val %></textarea>
+                    </div>
+%               } elsif (exists($filling->{$caption})
+%                   && ref($filling->{$caption}) eq 'ARRAY')
+%               {
+                    <div>
+                        <span class="label"><% $caption %></span>
+                        <select name="<% $caption %>">
+                            <option value=""></option>
+%                           foreach (sort @{$filling->{$caption}}) {
+                                <option value="<% $_ %>" <% ($val && $_ eq $val) ? 'selected' : '' %>><% $_ %></option>
+%                           }
+                        </select>
+                    </div>
+%               }
+                <input type="hidden" name="old-<% $caption %>" value="<% $val %>" />
+%           }
         </div>
     </div>
-    <input type="hidden" name="event<% $event_num %>" />
 </&>
 
-<%init>
-if ($dummy)
-{
-    $event_num = '%d';
-}
-</%init>
-
 <%args>
+$captions => []
+$filling => {}
 $data => {}
-$actual_values => {}
 $dummy => 0
-$event_num => 1
 </%args>

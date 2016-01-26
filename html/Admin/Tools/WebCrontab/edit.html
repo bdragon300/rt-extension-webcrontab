@@ -1,0 +1,111 @@
+<& /Admin/Elements/Header, Title => $title &>
+<& /Elements/Tabs &>
+
+<& /Elements/ListActions, actions => \@results &>
+
+<style>
+    .el span.label {
+        display: block;
+        text-align: left;
+    }
+    .elgrp div.el {
+        display: inline-block;
+        margin: 10px 5px;
+        vertical-align: top;
+    }
+</style>
+
+<form action="/Admin/Tools/WebCrontab/edit.html?id=<% $id %>&Create=<% $Create %>" method="post">
+    <& Elements/CrontabEvent, filling => $available_values, data => $event, captions => $classes &>
+    <& /Elements/Submit, Name => 'submit', Label => loc('Save Changes') &>
+%   if ($Create == 0) {
+        <& /Elements/Submit, Name => 'remove', Label => loc('REMOVE'), OnClick => "return confirm('" . loc("Do you want to remove event?") . "');" &>
+%   }
+</form>
+
+<%init>
+use Data::Dumper qw{Dumper};
+
+my $title = loc('Crontab event');
+unless ($session{'CurrentUser'}->HasRight( Object=> $RT::System, Right => 'SuperUser')) {
+    Abort(loc('This feature is only available to system administrators'));
+}
+
+my $available_values = RT::Extension::WebCrontab::get_available_values();
+my $events = RT::Extension::WebCrontab::load_events();
+my $classes = RT::Extension::WebCrontab::get_classes();
+my @results;
+my $event = {};
+
+$id += 0;
+$Create += 0;
+unless (defined($events->[$id]) || $Create) {
+    Abort(loc('ERROR: Invalid id'));
+}
+unless ($Create) {
+    $event = $events->[$id];
+}
+
+if ($ARGS{'remove'}) {
+    splice(@$events, $id, 1);
+
+    my ($res, $msg) = RT::Extension::WebCrontab::save_events($events);
+    if ($res) {
+        push @results, loc('Crontab saved');
+    } else {
+        push @results, loc('ERROR: Cannot save crontab: [_1]', $msg);
+    }
+
+    MaybeRedirectForResults(
+        Actions   => \@results,
+        Path      => "/Admin/Tools/WebCrontab"
+    );
+}
+
+if ($ARGS{'submit'}) {
+    my %new_event = map { $_ => $ARGS{$_} } 
+        grep { $ARGS{$_} } 
+        (@$classes, 'expression');
+    my %old_event = map { $_ => $ARGS{'old-' . $_} } 
+        grep { $ARGS{'old-' . $_} } 
+        (@$classes, 'expression');
+
+    if ($new_event{'expression'} !~ /^(([\d,*\/-]+ ){4}[\d,*\/-]+)|(@[a-z]+)$/) {
+        push @results, "ERROR: Incorrect crontab expression";
+    }
+
+    # Check whether crontab changed while user was editing current rule
+    unless ($Create) {
+        if ((grep { ! exists $old_event{$_} } keys %$event)
+            || (grep { ! exists $event->{$_} } keys %old_event)
+            || (grep {$event->{$_} ne $old_event{$_}} keys %$event))
+        {
+            push @results, loc("ERROR: Crontab changed since last read. Changes was loaded");
+        }
+    }
+
+    unless (@results) {
+        $id = scalar(@$events) if ($Create);
+        $events->[$id] = \%new_event;
+
+        my ($res, $msg) = RT::Extension::WebCrontab::save_events($events);
+
+        if ($res) {
+            push @results, loc('Crontab saved');
+        } else {
+            push @results, loc('ERROR: Cannot save crontab: [_1]', $msg);
+        }
+
+        MaybeRedirectForResults(
+            Actions   => \@results,
+            Path      => "/Admin/Tools/WebCrontab"
+        );
+    }
+}
+</%init>
+
+<%args>
+$id => 0
+$Create => 0
+$Remove => 0
+</%args>
