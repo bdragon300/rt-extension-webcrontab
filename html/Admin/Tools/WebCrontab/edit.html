@@ -39,9 +39,15 @@ my $event = {};
 
 $id += 0;
 $Create += 0;
-unless (defined($events->[$id]) || $Create) {
-    Abort(loc('ERROR: Invalid id'));
+unless ($Create) {
+    if ( ! defined($events->[$id])
+        || $events->[$id]->{'skip'})
+    {
+        Abort(loc('ERROR: Invalid id'));
+    }
 }
+
+    
 unless ($Create) {
     $event = $events->[$id];
 }
