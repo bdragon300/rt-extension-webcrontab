@@ -9,6 +9,7 @@ use File::Find;
 use Text::ParseWords;
 use Clone qw(clone);
 use Data::Dumper qw{Dumper};
+use utf8;
 
 our $VERSION = '0.1';
 
@@ -155,6 +156,7 @@ sub load_crontab {
     foreach my $event ($ct->select( -type => 'event' )) {
         my $e = {};
         my $cmd = $event->command;
+        utf8::decode($cmd) unless utf8::is_utf8($cmd);
         my @shwords = shellwords(($cmd));
 
         if ($shwords[0] !~ /.*rt-crontool$/) {
