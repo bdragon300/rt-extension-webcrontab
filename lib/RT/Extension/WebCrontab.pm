@@ -194,6 +194,7 @@ sub load_crontab {
 
     foreach my $env ($ct->select( -type => 'env' )) {
         my $v = $env->value;
+        utf8::decode($v) unless utf8::is_utf8($v);
         $v =~ s/^"(.*)"$/$1/g; # unquote
         $v =~ s/\\([\\"])/$1/g; # unescape
 
