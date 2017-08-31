@@ -32,8 +32,12 @@ unless ($session{'CurrentUser'}->HasRight( Object=> $RT::System, Right => 'Super
 }
 
 my $available_values = RT::Extension::WebCrontab::get_available_values();
-my $events = RT::Extension::WebCrontab::load_events();
 my $classes = RT::Extension::WebCrontab::get_classes();
+
+my $crontab = RT::Extension::WebCrontab::load_crontab();
+my $events = $crontab->{'events'};
+undef $crontab;
+
 my @results;
 my $event = {};
 
@@ -76,7 +80,7 @@ if ($ARGS{'submit'}) {
         grep { $ARGS{'old-' . $_} } 
         (@$classes, 'expression');
 
-    if ($new_event{'expression'} !~ /^(([\d,*\/-]+ ){4}[\d,*\/-]+)|(@[a-z]+)$/) {
+    if ($new_event{'expression'} !~ /^(([\d,*\/-]+ ){4}[\d,*\/-]+)|(@[a-z]+)$/) {  # FIXME: mon-sun expressions do not match
         push @results, "ERROR: Incorrect crontab expression";
     }
 
@@ -107,6 +111,7 @@ if ($ARGS{'submit'}) {
             Path      => "/Admin/Tools/WebCrontab"
         );
     }
+    #FIXME: results will not be printed
 }
 </%init>
 
