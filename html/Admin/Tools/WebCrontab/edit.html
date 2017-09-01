@@ -51,9 +51,11 @@ unless ($Create) {
     }
 }
 
-    
+
 unless ($Create) {
     $event = $events->[$id];
+    delete @$event{qw/obj skip/}; # delete not significant keys
+    # FIXME: delete keys with undef values
 }
 
 if ($ARGS{'remove'}) {
@@ -86,14 +88,14 @@ if ($ARGS{'submit'}) {
 
     # Check whether crontab changed while user was editing current rule
     unless ($Create) {
-        if ((grep { ! exists $old_event{$_} } keys %$event)
-            || (grep { ! exists $event->{$_} } keys %old_event)
+        no warnings;  # smartmatch op use
+        if ( ! (%old_event ~~ %$event)
             || (grep {$event->{$_} ne $old_event{$_}} keys %$event))
         {
             push @results, loc("ERROR: Crontab changed since last read. Changes was loaded");
         }
     }
-
+    
     unless (@results) {
         $id = scalar(@$events) if ($Create);
         $events->[$id] = \%new_event;
@@ -111,7 +113,6 @@ if ($ARGS{'submit'}) {
             Path      => "/Admin/Tools/WebCrontab"
         );
     }
-    #FIXME: results will not be printed
 }
 </%init>
 
