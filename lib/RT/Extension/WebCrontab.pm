@@ -264,8 +264,7 @@ sub save_crontab {
     my $events = _build_events($args{events} // $old_crontab->{'events'} // []);
 
     my %vars = %{ $args{env} // $old_crontab->{'env'} // {} };
-    my %vars_ok = %vars{grep exists($vars{$_}), @available_env_vars}; # only available vars
-    my $env = _build_env(\%vars_ok);
+    my $env = _build_env(\%vars);
 
     my $cb = new Config::Crontab::Block( -lines => $events );
     $cb->first(@$env);
@@ -344,7 +343,7 @@ sub _read_events {
                 my $v = shift @shwords;
                 $v =~ s/^"(.*)"$/$1/g; # unquote
                 $v =~ s/\\([\\"])/$1/g; # unescape
-
+                #FIXME: unescape incorrect example: \\\" becomes "
                 $e{$class} = $v;
             }
         }
@@ -383,7 +382,7 @@ sub _read_env {
         utf8::decode($v) unless utf8::is_utf8($v);
         $v =~ s/^"(.*)"$/$1/g; # unquote
         $v =~ s/\\([\\"])/$1/g; # unescape
-
+        #FIXME: unescape incorrect example: \\\" becomes "
         $vars{$env->name} = $v;
     }
 
@@ -482,7 +481,7 @@ sub _build_env {
         # escape and quote
         $v =~ s/(["\\])/\\$1/g;
         $v = '"' . $v . '"';
-
+        # FIXME: remove double quotes
         push @env, new Config::Crontab::Env( -name => $k, -value => $v );
     }
 
