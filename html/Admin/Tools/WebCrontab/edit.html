@@ -95,6 +95,7 @@ if ($ARGS{'submit'}) {
     );
     my @errors = grep ! ($_ =~ shift @check), split(/ /, $new_event{'expression'}, scalar(@check));
     push(@errors, $new_event{'expression'} . '...') if (scalar(@check) > 2);  # Incomplete expression
+    @errors = () if ($new_event{'expression'} =~ /^@(reboot|yearly|annually|monthly|weekly|daily|midnight|hourly)$/i);
 
     if (@errors) {
         push @results, loc("ERROR: Error in the expression at \"[_1]\"", $errors[0]);
