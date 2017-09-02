@@ -179,6 +179,7 @@ HASHREF with following data:
 
 sub load_crontab {
     my $ct = new Config::Crontab;
+    #TODO: use block.active property
     $ct->read || RT::Logger->warning("[RT::Extension::WebCrontab]: User crontab does not exist and will be created");
     if ($ct->error) {
         RT::Logger->error("[RT::Extension::WebCrontab]: Cannot read crontab: " . $ct->error);
@@ -260,7 +261,7 @@ sub save_crontab {
         env => undef,    # type: HASHREF
         @_
     );
-
+    #TODO: use block.active property
     my $events = _build_events($args{events} // $old_crontab->{'events'} // []);
 
     my %vars = %{ $args{env} // $old_crontab->{'env'} // {} };
