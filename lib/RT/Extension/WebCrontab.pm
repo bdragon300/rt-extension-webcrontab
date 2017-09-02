@@ -320,7 +320,7 @@ sub _read_events {
 
         # Mark as 'skip' non rt-crontool command
         if ($shwords[0] !~ /.*rt-crontool$/) {
-            $RT::Logger->warning("[RT::Extension::WebCrontab]: Skip event: " . $cmd);  # FIXME: reduce log lvl
+            $RT::Logger->info("[RT::Extension::WebCrontab]: Skip event: " . $cmd);
 
             $e{'skip'} = 1;
             $e{'obj'} = $event;
