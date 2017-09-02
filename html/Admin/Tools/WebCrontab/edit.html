@@ -16,7 +16,7 @@
 </style>
 
 <form action="/Admin/Tools/WebCrontab/edit.html?id=<% $id %>&Create=<% $Create %>" method="post">
-    <& Elements/CrontabEvent, filling => $available_values, data => $event, captions => $classes &>
+    <& Elements/CrontabEvent, filling => $available_values, data => $current_event, captions => $classes &>
     <& /Elements/Submit, Name => 'submit', Label => loc('Save Changes') &>
 %   if ($Create == 0) {
         <& /Elements/Submit, Name => 'remove', Label => loc('REMOVE'), OnClick => "return confirm('" . loc("Do you want to remove event?") . "');" &>
@@ -39,7 +39,7 @@ my $events = $crontab->{'events'};
 undef $crontab;
 
 my @results;
-my $event = {};
+my $current_event = {};
 
 $id += 0;
 $Create += 0;
@@ -53,8 +53,8 @@ unless ($Create) {
 
 
 unless ($Create) {
-    $event = $events->[$id];
-    delete @$event{qw/obj skip/}; # delete not significant keys
+    $current_event = $events->[$id];
+    delete @$current_event{qw/obj skip/}; # delete not significant keys
     # FIXME: delete keys with undef values
 }
 
@@ -82,15 +82,15 @@ if ($ARGS{'submit'}) {
         grep { $ARGS{'old-' . $_} } 
         (@$classes, 'expression');
 
-    if ($new_event{'expression'} !~ /^(([\d,*\/-]+ ){4}[\d,*\/-]+)|(@[a-z]+)$/) {  # FIXME: mon-sun expressions do not match
+    if ($new_event{'expression'} !~ /^(([\d,*\/-]+ ){4}[\d,*\/-]+)|(@[a-z]+)$/) {  # FIXME: mon-sun expressions do not match, 0 0 0 0 0 match
         push @results, "ERROR: Incorrect crontab expression";
     }
 
-    # Check whether crontab changed while user was editing current rule
+    # Make sure that current crontab event and the old event (had been existing by edit) must be identical
     unless ($Create) {
         no warnings;  # smartmatch op use
-        if ( ! (%old_event ~~ %$event)
-            || (grep {$event->{$_} ne $old_event{$_}} keys %$event))
+        if ( ! (%old_event ~~ %$current_event)
+            || (grep {$current_event->{$_} ne $old_event{$_}} keys %$current_event))
         {
             push @results, loc("ERROR: Crontab changed since last read. Changes was loaded");
         }
