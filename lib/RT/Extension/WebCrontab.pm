@@ -414,10 +414,8 @@ sub _build_events {
         my @cmd_params = ();
 
         # Write non rt-crontool call in its original form
-        if ($event->{'skip'}
-            && ref($event->{'obj'})) # FIXME: split skip and ref checks
-        {
-            push @res, $event->{'obj'};
+        if ($event->{'skip'}) {
+            push @res, $event->{'obj'} if (ref($event->{'obj'}));
             next;
         }
 
