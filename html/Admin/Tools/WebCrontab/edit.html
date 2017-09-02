@@ -16,7 +16,7 @@
 </style>
 
 <form action="/Admin/Tools/WebCrontab/edit.html?id=<% $id %>&Create=<% $Create %>" method="post">
-    <& Elements/CrontabEvent, filling => $available_values, data => $current_event, captions => $classes &>
+    <& Elements/CrontabEvent, filling => $available_values, data => \%current_event, captions => $classes &>
     <& /Elements/Submit, Name => 'submit', Label => loc('Save Changes') &>
 %   if ($Create == 0) {
         <& /Elements/Submit, Name => 'remove', Label => loc('REMOVE'), OnClick => "return confirm('" . loc("Do you want to remove event?") . "');" &>
@@ -39,7 +39,7 @@ my $events = $crontab->{'events'};
 undef $crontab;
 
 my @results;
-my $current_event = {};
+my %current_event = ();
 
 $id += 0;
 $Create += 0;
@@ -53,9 +53,9 @@ unless ($Create) {
 
 
 unless ($Create) {
-    $current_event = $events->[$id];
-    delete @$current_event{qw/obj skip/}; # delete not significant keys
-    # FIXME: delete keys with undef values
+    %current_event = %{$events->[$id]};
+    # delete not significant keys
+    delete @current_event{qw/obj skip/};
 }
 
 if ($ARGS{'remove'}) {
@@ -101,8 +101,8 @@ if ($ARGS{'submit'}) {
     # Make sure that current crontab event and the old event (had been existing by edit) must be identical
     unless ($Create) {
         no warnings;  # smartmatch op use
-        if ( ! (%old_event ~~ %$current_event)
-            || (grep {$current_event->{$_} ne $old_event{$_}} keys %$current_event))
+        if ( ! (%old_event ~~ %current_event)
+            || (grep {$current_event{$_} ne $old_event{$_}} keys %current_event))
         {
             push @results, loc("ERROR: Crontab changed since last read. Changes was loaded");
         }
