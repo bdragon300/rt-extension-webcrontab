@@ -56,6 +56,8 @@ unless ($Create) {
     %current_event = %{$events->[$id]};
     # delete not significant keys
     delete @current_event{qw/obj skip/};
+    #delete keys with undef values, i.e. ignore crontool parameters without args
+    delete @current_event{grep ! defined $current_event{$_}, keys %current_event}; 
 }
 
 if ($ARGS{'remove'}) {
