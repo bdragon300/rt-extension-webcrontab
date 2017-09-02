@@ -14,6 +14,7 @@ Dependencies:
 
 * RT >= 4.0.0
 * Config::Crontab >= 1.33
+* String::Escape
 
 Commands to install:
 
