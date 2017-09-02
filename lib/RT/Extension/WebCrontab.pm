@@ -9,6 +9,7 @@ use File::Find;
 use Text::ParseWords;
 use Clone qw(clone);
 use Data::Dumper qw{Dumper};
+use String::Escape qw(qprintable unquote);
 use utf8;
 
 our $VERSION = '0.1';
@@ -341,11 +342,7 @@ sub _read_events {
                 $e{$class} = '';
                 next if (exists($shwords[0]) && $shwords[0] =~ /^--/); # no value for current parameter
 
-                my $v = shift @shwords;
-                $v =~ s/^"(.*)"$/$1/g; # unquote
-                $v =~ s/\\([\\"])/$1/g; # unescape
-                #FIXME: unescape incorrect example: \\\" becomes "
-                $e{$class} = $v;
+                $e{$class} = unquote(shift @shwords); # unescape made by shellwords
             }
         }
 
@@ -381,10 +378,8 @@ sub _read_env {
     foreach my $env ($crontab->select( -type => 'env' )) {
         my $v = $env->value;
         utf8::decode($v) unless utf8::is_utf8($v);
-        $v =~ s/^"(.*)"$/$1/g; # unquote
-        $v =~ s/\\([\\"])/$1/g; # unescape
-        #FIXME: unescape incorrect example: \\\" becomes "
-        $vars{$env->name} = $v;
+
+        $vars{$env->name} = unquote($v);
     }
 
     return \%vars;
@@ -429,20 +424,12 @@ sub _build_events {
         for my $class (grep !/-arg$/, @classes) {
             next unless exists($event->{$class});
 
-            # escape and quote
-            $event->{$class} =~ s/(["\\])/\\$1/g;
-            $event->{$class} = '"' . $event->{$class} . '"';
-
             push @cmd_params, '--' . $class;
-            push @cmd_params, $event->{$class};
+            push @cmd_params, qprintable($event->{$class});
 
             if (exists($event->{$class . '-arg'})) {
-                # escape and quote
-                $event->{$class . '-arg'} =~ s/(["\\])/\\$1/g;
-                $event->{$class . '-arg'} = '"' . $event->{$class . '-arg'} . '"';
-
                 push @cmd_params, '--' . $class . '-arg';
-                push @cmd_params, $event->{$class . '-arg'};
+                push @cmd_params, qprintable($event->{$class . '-arg'});
             }
         }
 
@@ -478,11 +465,7 @@ sub _build_env {
     my @env = ();
 
     for my $k (keys %$vars) {
-        my $v = $vars->{$k};
-        # escape and quote
-        $v =~ s/(["\\])/\\$1/g;
-        $v = '"' . $v . '"';
-        # FIXME: remove double quotes
+        my $v = qprintable($vars->{$k});
         push @env, new Config::Crontab::Env( -name => $k, -value => $v );
     }
 

@@ -20,6 +20,7 @@ no_index:
     - html
 requires:
   Config::Crontab: 1.33
+  String::Escape: 0
   perl: 5.8.3
 resources:
   license: http://dev.perl.org/licenses/
