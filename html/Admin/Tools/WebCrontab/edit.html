@@ -110,7 +110,7 @@ if ($ARGS{'submit'}) {
         if ( ! (%old_event ~~ %current_event)
             || (grep {$current_event{$_} ne $old_event{$_}} keys %current_event))
         {
-            push @results, loc("ERROR: Crontab changed since last read. Changes was loaded");
+            push @results, loc("WARNING: Event was changed in the crontab on background. Press Save Changes again to overwrite.");
         }
     }
     
