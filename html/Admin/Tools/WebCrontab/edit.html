@@ -16,7 +16,8 @@
 </style>
 
 <form action="/Admin/Tools/WebCrontab/edit.html?id=<% $id %>&Create=<% $Create %>" method="post">
-    <& Elements/CrontabEvent, filling => $available_values, data => \%current_event, captions => $classes &>
+%   my $event_to_display = @results ? \%new_event : \%current_event;
+    <& Elements/CrontabEvent, filling => $available_values, data => $event_to_display, old_data => \%current_event, captions => $classes &>
     <& /Elements/Submit, Name => 'submit', Label => loc('Save Changes') &>
 %   if ($Create == 0) {
         <& /Elements/Submit, Name => 'remove', Label => loc('REMOVE'), OnClick => "return confirm('" . loc("Do you want to remove event?") . "');" &>
@@ -40,6 +41,8 @@ undef $crontab;
 
 my @results;
 my %current_event = ();
+my %new_event = ();
+my %old_event = ();
 
 $id += 0;
 $Create += 0;
@@ -77,10 +80,10 @@ if ($ARGS{'remove'}) {
 }
 
 if ($ARGS{'submit'}) {
-    my %new_event = map { $_ => $ARGS{$_} } 
+    %new_event = map { $_ => $ARGS{$_} } 
         grep { $ARGS{$_} } 
         (@$classes, 'expression');
-    my %old_event = map { $_ => $ARGS{'old-' . $_} } 
+    %old_event = map { $_ => $ARGS{'old-' . $_} } 
         grep { $ARGS{'old-' . $_} } 
         (@$classes, 'expression');
 

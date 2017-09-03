@@ -1,13 +1,13 @@
 % my $val;
 % @$captions = keys %$filling unless @$captions;
+% $old_data = $data unless defined $old_data;
 %
 <&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event', 'rolledup'=>0 &>
     <div class="elgrp">
         <div class="el">
             <span class="label">Crontab expression</span>
-% $val = (exists $data->{'expression'}) ? $data->{'expression'} : '';
-            <input name="expression" value="<% $val %>" placeholder="min hour day month dow" />
-            <input type="hidden" name="old-expression" value="<% $val %>" />
+            <input name="expression" value="<% $data->{'expression'} // '' %>" placeholder="min hour day month dow" />
+            <input type="hidden" name="old-expression" value="<% $old_data->{'expression'} // '' %>" />
         </div>
     </div>
     <div class="elgrp">
@@ -18,7 +18,7 @@
 %               print '</div><div class="el">' if (@prev_pieces && $pieces[0] ne $prev_pieces[0]);
 %               @prev_pieces = @pieces;
 %
-%               $val = (exists $data->{$caption}) ? $data->{$caption} : '';
+%               $val = $data->{$caption} // '';
 %               if (defined $pieces[1] 
 %                   && $pieces[1] eq 'arg') 
 %               {
@@ -39,7 +39,7 @@
                         </select>
                     </div>
 %               }
-                <input type="hidden" name="old-<% $caption %>" value="<% $val %>" />
+                <input type="hidden" name="old-<% $caption %>" value="<% $old_data->{$caption} // '' %>" />
 %           }
         </div>
     </div>
@@ -49,5 +49,6 @@
 $captions => []
 $filling => {}
 $data => {}
+$old_data => undef
 $dummy => 0
 </%args>
