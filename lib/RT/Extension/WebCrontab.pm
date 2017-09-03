@@ -313,7 +313,8 @@ sub _read_events {
         my %e = (
             'skip' => 0,
             'obj' => undef,
-            'expression' => undef
+            'expression' => undef,
+            'active' => $event->active
         );
         my $cmd = $event->command;
         utf8::decode($cmd) unless utf8::is_utf8($cmd);
@@ -433,7 +434,12 @@ sub _build_events {
 
         my $cmd = join(' ', ($cmd_exe, @cmd_params));
         my $expression = $event->{'expression'};
-        push @res, new Config::Crontab::Event( -datetime => $expression, -command => $cmd );
+        my $is_active = $event->{'active'} ? 1 : 0;
+        push @res, new Config::Crontab::Event(
+            -datetime => $expression,
+            -command => $cmd,
+            -active => $is_active
+        );
     }
 
     return \@res;

@@ -72,7 +72,7 @@ my $crontab = RT::Extension::WebCrontab::load_crontab();
 
 # Fill data for CollectionTable
 my $table_rows = [];
-my $table_headers = [loc('#'), loc('Expression'), loc('Search'), loc('Condition'), loc('Action'), loc('Template')];
+my $table_headers = [loc('#'), loc('Expression'), loc('Search'), loc('Condition'), loc('Action'), loc('Template'), loc('Status')];
 
 my $i = 0;
 while (defined($crontab->{'events'}->[$i])) {
@@ -82,8 +82,9 @@ while (defined($crontab->{'events'}->[$i])) {
             'link' => '/Admin/Tools/WebCrontab/edit.html?id=' . $i,
             'cols' => [
                 $i,
-                map { defined($e->{$_}) ? loc($e->{$_}) : '' }
-                    ('expression', 'search', 'condition', 'action', 'template')
+                (map { defined($e->{$_}) ? loc($e->{$_}) : '' }
+                    ('expression', 'search', 'condition', 'action', 'template')),
+                $e->{'active'} ? 'Enabled' : 'Disabled'
             ],
         };
     }

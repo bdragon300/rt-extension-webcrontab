@@ -9,6 +9,12 @@
             <input name="expression" value="<% $data->{'expression'} // '' %>" placeholder="min hour day month dow" />
             <input type="hidden" name="old-expression" value="<% $old_data->{'expression'} // '' %>" />
         </div>
+        <div class="el">
+            <span class="label">&nbsp;</span>
+            <input id="enabled" name="active" class="checkbox" type="checkbox" <% $data->{'active'} ? 'checked' : '' %>>
+            <label for="enabled">Enabled</label>
+            <input type="hidden" name="old-active" value="<% $old_data->{'active'} // '' %>" />
+        </div>
     </div>
     <div class="elgrp">
         <div class="el">
