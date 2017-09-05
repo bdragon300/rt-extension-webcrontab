@@ -49,6 +49,15 @@
 %           }
         </div>
     </div>
+    <div class="elgrp">
+        <div class="el">
+            <div>
+                <span class="label">Comment</span>
+                <textarea name="comment"><% $data->{'comment'} // '' %></textarea>
+            </div>
+            <input type="hidden" name="old-comment" value="<% $old_data->{'comment'} // '' %>" />
+        </div>
+    </div>
 </&>
 
 <%args>

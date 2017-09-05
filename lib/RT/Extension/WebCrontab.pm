@@ -9,7 +9,7 @@ use File::Find;
 use Text::ParseWords;
 use Clone qw(clone);
 use Data::Dumper qw{Dumper};
-use String::Escape qw(qprintable unquote);
+use String::Escape qw(qprintable unquote printable);
 use utf8;
 
 our $VERSION = '0.1';
@@ -314,7 +314,8 @@ sub _read_events {
             'skip' => 0,
             'obj' => undef,
             'expression' => undef,
-            'active' => $event->active
+            'active' => $event->active,
+            'comment' => undef
         );
         my $cmd = $event->command;
         utf8::decode($cmd) unless utf8::is_utf8($cmd);
@@ -330,7 +331,7 @@ sub _read_events {
 
             next;
         } else {
-            shift @shwords; #FIXME: do not print commented strings
+            shift @shwords;
         }
         
         $e{'expression'} = $event->datetime;
@@ -344,6 +345,10 @@ sub _read_events {
                 next if (exists($shwords[0]) && $shwords[0] =~ /^--/); # no value for current parameter
 
                 $e{$class} = unquote(shift @shwords); # unescape made by shellwords
+            } elsif ($shword =~ /^#/) {
+                $shword =~ s/^#//;
+                $e{'comment'} = join ' ', ($shword, @shwords);
+                @shwords = ();
             }
         }
 
@@ -430,6 +435,10 @@ sub _build_events {
                 push @cmd_params, '--' . $class . '-arg';
                 push @cmd_params, qprintable($event->{$class . '-arg'});
             }
+        }
+
+        if ($event->{'comment'} ne '') {
+            push @cmd_params, '#' . printable($event->{'comment'});
         }
 
         my $cmd = join(' ', ($cmd_exe, @cmd_params));

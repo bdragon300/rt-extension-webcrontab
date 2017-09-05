@@ -19,7 +19,7 @@
 			<td class="collection-as-table">
 				<% $col %>
 %           } elsif (ref($col) eq 'HASH') {
-			<td class="collection-as-table">
+			<td class="collection-as-table" style="<% $col->{'td_style'} %>">
 				<% $col->{'pre'} | n %>
 				<% $col->{'v'} %>
 				<% $col->{'post'} | n %>

@@ -82,11 +82,11 @@ if ($ARGS{'remove'}) {
 if ($ARGS{'submit'}) {
     %new_event = map { $_ => $ARGS{$_} } 
         grep { $ARGS{$_} } 
-        (@$classes, 'expression');
+        (@$classes, 'expression', 'comment');
     $new_event{'active'} = $ARGS{'active'} ? '1' : '0';
     %old_event = map { $_ => $ARGS{'old-' . $_} } 
         grep { $ARGS{'old-' . $_} } 
-        (@$classes, 'expression');
+        (@$classes, 'expression', 'comment');
     $old_event{'active'} = $ARGS{'old-active'} ? '1' : '0';
 
     my @check = (
