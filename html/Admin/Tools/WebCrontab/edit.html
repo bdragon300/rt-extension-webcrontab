@@ -40,7 +40,7 @@ my $events = $crontab->{'events'};
 undef $crontab;
 
 my @results;
-my %current_event = ();
+my %current_event = (active => 1);
 my %new_event = ();
 my %old_event = ();
 
