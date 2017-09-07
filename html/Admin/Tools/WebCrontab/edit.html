@@ -90,7 +90,7 @@ if ($ARGS{'submit'}) {
     $old_event{'active'} = $ARGS{'old-active'} ? '1' : '0';
 
     # Check expression syntax
-    my $expr_regex = qr/^[^ ]+( [^ ]+){4,5}$/i;
+    my $expr_regex = qr/^[^\s]+(\s[^\s]+){4,5}$/i;
     my $simple_expr_regex = qr/^\@(reboot|yearly|annually|monthly|weekly|daily|midnight|hourly)$/i;
     my @fields_regex = (
         qr/^([1-5]?[0-9]|\*)([,\/\-]([1-5]?[0-9]|\*))*$/,
@@ -104,7 +104,7 @@ if ($ARGS{'submit'}) {
     if ($new_event{'expression'} =~ $simple_expr_regex) {  # sufficient match
         @mismatch = ();
     } elsif ($new_event{'expression'} =~ $expr_regex) {
-        @mismatch = grep { $_ !~ shift @fields_regex } split(/ /, $new_event{'expression'}, scalar(@fields_regex)); 
+        @mismatch = grep { $_ !~ shift @fields_regex } split(/\s/, $new_event{'expression'}, scalar(@fields_regex)); 
     } else {
         @mismatch = ($new_event{'expression'});  # Show whole expression in error msg
     }
