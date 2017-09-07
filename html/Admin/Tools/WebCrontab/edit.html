@@ -89,26 +89,32 @@ if ($ARGS{'submit'}) {
         (@$classes, 'expression', 'comment');
     $old_event{'active'} = $ARGS{'old-active'} ? '1' : '0';
 
-    my @check = (
+    # Check expression syntax
+    my $expr_regex = qr/^[^ ]+( [^ ]+){4,5}$/i;
+    my $simple_expr_regex = qr/^\@(reboot|yearly|annually|monthly|weekly|daily|midnight|hourly)$/i;
+    my @fields_regex = (
         qr/^([1-5]?[0-9]|\*)([,\/\-]([1-5]?[0-9]|\*))*$/,
         qr/^(1?[0-9]|2[0-3]|\*)([,\/\-](1?([0-9]|2[0-3])|\*))*$/,
         qr/^\?$|^([1-9]|[1-2][0-9]|3[0-1]|\*)[LW]?([,\/\-](([1-9]|[1-2][0-9]|3[0-1])[LW]?|[LW]|\*))*$/,
         qr/^([1-9]|1[0-2]|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\*)([,\/\-]([1-9]|1[0-2]|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\*))*$/i,
         qr/^\?$|^([0-6]L?|sun|mon|tue|wed|thu|fri|sat|\*)([#,\/\-]([0-6]L?|sun|mon|tue|wed|thu|fri|sat|\*))*$/i,
         qr/^(19[7-9][0-9]|20[0-9][0-9]|\*)([,\/\-](19[7-9][0-9]|20[0-9][0-9]|\*))*$/, # Optional
-        qr/^$/
     );
-    my @errors = grep ! ($_ =~ shift @check), split(/ /, $new_event{'expression'}, scalar(@check));
-    push(@errors, $new_event{'expression'} . '...') if (scalar(@check) > 2);  # Incomplete expression
-    @errors = () if ($new_event{'expression'} =~ /^@(reboot|yearly|annually|monthly|weekly|daily|midnight|hourly)$/i);
-
-    if (@errors) {
-        push @results, loc("ERROR: Error in the expression at \"[_1]\"", $errors[0]);
+    my @mismatch = ();
+    if ($new_event{'expression'} =~ $simple_expr_regex) {  # sufficient match
+        @mismatch = ();
+    } elsif ($new_event{'expression'} =~ $expr_regex) {
+        @mismatch = grep { $_ !~ shift @fields_regex } split(/ /, $new_event{'expression'}, scalar(@fields_regex)); 
+    } else {
+        @mismatch = ($new_event{'expression'});  # Show whole expression in error msg
+    }
+    if (@mismatch) {
+        push @results, loc("ERROR: Error in the expression at \"[_1]\"", $mismatch[0]);
     }
 
-    # Make sure that current crontab event and the old event (had been existing by edit) must be identical
+    # Make sure the task has not actually changed from the last time
     unless ($Create) {
-        no warnings;  # smartmatch op use
+        no warnings;  # using ~~
         if ( ! (%old_event ~~ %current_event)
             || (grep {$current_event{$_} ne $old_event{$_}} keys %current_event))
         {
