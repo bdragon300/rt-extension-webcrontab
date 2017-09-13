@@ -326,14 +326,13 @@ sub _read_events {
             $RT::Logger->info("[RT::Extension::WebCrontab]: Skip event: " . $cmd);
 
             $e{'skip'} = 1;
-            $e{'obj'} = $event;
             push @events, clone(\%e);
-
             next;
         } else {
             shift @shwords;
         }
         
+        $e{'obj'} = $event;
         $e{'expression'} = $event->datetime;
         while (@shwords) {
             my $shword = shift @shwords;
