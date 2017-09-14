@@ -52,7 +52,8 @@ $Create += 0;
 
 my $event_id = $id - 1;  # zero-based
 unless ($Create) {
-    if ( ! defined($events->[$event_id])
+    if ( $event_id < 0
+        || ! defined($events->[$event_id])
         || $events->[$event_id]->{'skip'})
     {
         Abort(loc('ERROR: Invalid id'));
