@@ -77,16 +77,17 @@ my $table_headers = [loc('#'), loc('Expression'), loc('Action'), loc('Template')
 my $i = 0;
 while (defined($crontab->{'events'}->[$i])) {
     my $e = $crontab->{'events'}->[$i];
+    my $id = $i + 1;  # one-based
     unless ($e->{'skip'}) {
         push @$table_rows, {
-            'link' => '/Admin/Tools/WebCrontab/edit.html?id=' . $i,
+            'link' => '/Admin/Tools/WebCrontab/edit.html?id=' . $id,
             'cols' => [
                 (map {{
-                        'pre' => '<a href="/Admin/Tools/WebCrontab/edit.html?id=' . $i . '">', 
+                        'pre' => '<a href="/Admin/Tools/WebCrontab/edit.html?id=' . $id . '">', 
                         'v' => $_,
                         'post' => '</a>'
                 }}  (
-                        $i,
+                        $id,
                         (
                             map { defined($e->{$_}) ? loc($e->{$_}) : '' } 
                                 ('expression', 'action', 'template')

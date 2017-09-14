@@ -49,20 +49,22 @@ my $exec_result = ();
 
 $id += 0;
 $Create += 0;
+
+my $event_id = $id - 1;  # zero-based
 unless ($Create) {
-    if ( ! defined($events->[$id])
-        || $events->[$id]->{'skip'})
+    if ( ! defined($events->[$event_id])
+        || $events->[$event_id]->{'skip'})
     {
         Abort(loc('ERROR: Invalid id'));
     }
 }
 
 if ($ARGS{'launch'}) {
-    $exec_result = RT::Extension::WebCrontab::exec_event($events->[$id]->{'obj'});
+    $exec_result = RT::Extension::WebCrontab::exec_event($events->[$event_id]->{'obj'});
 }
 
 unless ($Create) {
-    %current_event = %{$events->[$id]};
+    %current_event = %{$events->[$event_id]};
     # delete not significant keys
     delete @current_event{qw/obj skip/};
     #delete keys with undef values, i.e. ignore crontool parameters without args
@@ -70,7 +72,7 @@ unless ($Create) {
 }
 
 if ($ARGS{'remove'}) {
-    splice(@$events, $id, 1);
+    splice(@$events, $event_id, 1);
 
     my ($res, $msg) = RT::Extension::WebCrontab::save_events($events);
     if ($res) {
@@ -129,8 +131,8 @@ if ($ARGS{'submit'}) {
     }
     
     unless (@results) {
-        $id = scalar(@$events) if ($Create);
-        $events->[$id] = \%new_event;
+        $event_id = scalar(@$events) if ($Create);
+        $events->[$event_id] = \%new_event;
 
         my ($res, $msg) = RT::Extension::WebCrontab::save_events($events);
 
@@ -149,7 +151,7 @@ if ($ARGS{'submit'}) {
 </%init>
 
 <%args>
-$id => 0
+$id => 1  # one-based
 $Create => 0
 $Remove => 0
 </%args>
