@@ -18,10 +18,12 @@
 <form action="/Admin/Tools/WebCrontab/edit.html?id=<% $id %>&Create=<% $Create %>" method="post">
 %   my $event_to_display = @results ? \%new_event : \%current_event;
     <& Elements/CrontabEvent, filling => $available_values, data => $event_to_display, old_data => \%current_event, captions => $classes &>
+    <& Elements/CrontabManualExec, exec_result => $exec_result &>
     <& /Elements/Submit, Name => 'submit', Label => loc('Save Changes') &>
 %   if ($Create == 0) {
         <& /Elements/Submit, Name => 'remove', Label => loc('REMOVE'), OnClick => "return confirm('" . loc("Do you want to remove event?") . "');" &>
 %   }
+    
 </form>
 
 <%init>
@@ -43,6 +45,7 @@ my @results;
 my %current_event = (active => 1);
 my %new_event = ();
 my %old_event = ();
+my $exec_result = ();
 
 $id += 0;
 $Create += 0;
@@ -54,6 +57,9 @@ unless ($Create) {
     }
 }
 
+if ($ARGS{'launch'}) {
+    $exec_result = RT::Extension::WebCrontab::exec_event($events->[$id]->{'obj'});
+}
 
 unless ($Create) {
     %current_event = %{$events->[$id]};

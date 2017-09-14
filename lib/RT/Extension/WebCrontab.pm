@@ -10,6 +10,8 @@ use Text::ParseWords;
 use Clone qw(clone);
 use Data::Dumper qw{Dumper};
 use String::Escape qw(qprintable unquote printable);
+use IPC::Open3;
+use Symbol; # for gensym
 use utf8;
 
 our $VERSION = '0.1';
@@ -194,6 +196,77 @@ sub load_crontab {
     );
 
     return \%crontab;
+}
+
+=head2 exec_event(event_object) -> \%results
+
+Executes command from given event and returns result.
+
+Parameters:
+
+=over
+
+=item event_object
+
+=back
+
+Returns:
+
+HASHREF with following information:
+{
+        'stderr' => 'command STDERR',
+        'stdout' => 'command STDOUT',
+        'failed' => 'error msg if execute was failed',
+        'pid' => 'PID of child process'
+        'command' => 'command string'
+}
+
+=cut
+
+sub exec_event {
+    my $event_obj = shift;
+
+    # Convert command to a shellwords array, cut off comment
+    my $dirty_cmd = $event_obj->command;
+    my @shwords = shellwords(($dirty_cmd));
+    my @clean_cmd;
+    while (@shwords) {
+        $_ = shift @shwords;
+        last if /^#/;  # Stop on comment begin
+        push @clean_cmd, $_;
+    }
+
+    my %cmd_result = (
+        'stderr' => undef,
+        'stdout' => undef,
+        'failed' => undef,
+        'pid' => undef,
+        'command' => join ' ', @clean_cmd
+    );
+
+    my ($infh, $outfh, $errfh);
+    $errfh = gensym();
+    my $pid;
+
+    eval{
+        $pid = open3($infh, $outfh, $errfh, @clean_cmd);
+    };
+    if ($@) {
+        $cmd_result{'failed'} = 'Launch has failed, see logs for details';
+        $infh && close($infh);
+        $outfh && close($outfh);
+        $errfh && close($errfh);
+        return \%cmd_result;
+    }
+    $cmd_result{'pid'} = $pid;
+    $cmd_result{'stdout'} = join "", <$outfh>;
+    $cmd_result{'stderr'} = join "", <$errfh>;
+
+    $infh && close($infh);
+    $outfh && close($outfh);
+    $errfh && close($errfh);
+
+    return \%cmd_result;
 }
 
 

@@ -1,0 +1,38 @@
+<style>
+    .launch-submit-button div.submit {
+        text-align: left !important;
+    }
+    .launch-results {
+        padding: 5px;
+    }
+    .launch-results pre {
+        margin: 0;
+        white-space: pre-wrap;
+    }
+</style>
+<&| /Widgets/TitleBox,title => 'Manual launch', 'rolledup'=>1 &>
+    <p><strong>NOTE: command can take much time to execute, therefore webserver can drop the connection by timeout before command has finished</strong></p>
+    <div class="launch-submit-button"><& /Elements/Submit, Name => 'launch', Label => loc('Launch') &></div>
+    <div class="launch-results" style="height: 200px; overflow-y: scroll; width: 100%; border: 1px solid #aaa;">
+%       if ($exec_result->{'command'}) {
+            <div style="color: black"><pre>$ <% $exec_result->{'command'} %></pre></div>
+%       }
+%       if ($exec_result->{'failed'}) {
+            <div style="color: red"><pre><% $exec_result->{'failed'} %></pre></div>
+%       }
+%       if ($exec_result->{'stderr'}) {
+            <div style="color: red"><pre><% $exec_result->{'stderr'} %></pre></div>
+%       }
+%       if ($exec_result->{'stdout'}) {
+            <div style="color: green"><pre><% $exec_result->{'stdout'} %></pre></div>
+%       }
+%       if ($exec_result->{'pid'}) {
+            <div style="color: black"><pre>(PID: <% $exec_result->{'pid'} %>)</pre></div>
+%       }
+    </div>
+    <p>Legend: <span style="color: red">STDERR</span>, <span style="color: green">STDOUT</span></p>
+</&>
+
+<%args>
+$exec_result => {}
+</%args>
