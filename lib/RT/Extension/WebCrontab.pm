@@ -402,23 +402,26 @@ sub _read_events {
             $RT::Logger->info("[RT::Extension::WebCrontab]: Skip event: " . $cmd);
 
             $e{'skip'} = 1;
-            push @events, clone(\%e);
-            next;
-        } else {
-            shift @shwords;
+            # push @events, clone(\%e);
+            # next;
         }
+
+        shift @shwords; # Remove command
 
         while (@shwords) {
             my $shword = shift @shwords;
 
-            if (my @c = grep { $shword eq ('--' . $_) } @classes) {
-                my $class = $c[0];
+            unless ($e{'skip'}) {
+                if (my @c = grep { $shword eq ('--' . $_) } @classes) {
+                    my $class = $c[0];
 
-                $e{$class} = '';
-                next if (exists($shwords[0]) && $shwords[0] =~ /^--/); # no value for current parameter
+                    $e{$class} = '';
+                    next if (exists($shwords[0]) && $shwords[0] =~ /^--/); # no value for current parameter
 
-                $e{$class} = unquote(shift @shwords); # unescape made by shellwords
-            } elsif ($shword =~ /^#/) {
+                    $e{$class} = unquote(shift @shwords); # unescape made by shellwords
+                }
+            }
+            if ($shword =~ /^#/) {
                 $shword =~ s/^#//;
                 $e{'comment'} = join ' ', ($shword, @shwords);
                 @shwords = ();
