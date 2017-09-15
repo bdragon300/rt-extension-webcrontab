@@ -241,7 +241,7 @@ sub exec_event {
         'stdout' => undef,
         'failed' => undef,
         'pid' => undef,
-        'command' => join ' ', @clean_cmd
+        'command' => join ' ', map { qprintable($_) } @clean_cmd
     );
 
     my ($infh, $outfh, $errfh);
