@@ -501,16 +501,19 @@ sub _build_events {
             next unless exists($event->{$class});
 
             push @cmd_params, '--' . $class;
-            push @cmd_params, qprintable($event->{$class});
+            my $clean_val = $event->{$class} =~ s/\r|\n|\t/ /gr;
+            push @cmd_params, qprintable($clean_val);
 
             if (exists($event->{$class . '-arg'})) {
                 push @cmd_params, '--' . $class . '-arg';
-                push @cmd_params, qprintable($event->{$class . '-arg'});
+                $clean_val = $event->{$class . '-arg'} =~ s/\r|\n|\t/ /gr;
+                push @cmd_params, qprintable($clean_val);
             }
         }
 
         if ($event->{'comment'} ne '') {
-            push @cmd_params, '#' . printable($event->{'comment'});
+            my $clean_val = $event->{'comment'} =~ s/\r|\n|\t/ /gr;
+            push @cmd_params, '#' . printable($clean_val);
         }
 
         my $cmd = join(' ', ($cmd_exe, @cmd_params));
