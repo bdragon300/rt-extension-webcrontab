@@ -18,7 +18,9 @@
 <form action="/Admin/Tools/WebCrontab/edit.html?id=<% $id %>&Create=<% $Create %>" method="post">
 %   my $event_to_display = @results ? \%new_event : \%current_event;
     <& Elements/CrontabEvent, filling => $available_values, data => $event_to_display, old_data => \%current_event, captions => $classes &>
-    <& Elements/CrontabManualExec, exec_result => $exec_result &>
+%   if ($Create == 0) {
+        <& Elements/CrontabManualExec, exec_result => $exec_result &>
+%   }    
     <& /Elements/Submit, Name => 'submit', Label => loc('Save Changes') &>
 %   if ($Create == 0) {
         <& /Elements/Submit, Name => 'remove', Label => loc('REMOVE'), OnClick => "return confirm('" . loc("Do you want to remove event?") . "');" &>
@@ -60,11 +62,11 @@ unless ($Create) {
     }
 }
 
-if ($ARGS{'launch'}) {
-    $exec_result = RT::Extension::WebCrontab::exec_event($events->[$event_id]->{'obj'});
-}
-
 unless ($Create) {
+    if ($ARGS{'launch'}) {
+        $exec_result = RT::Extension::WebCrontab::exec_event($events->[$event_id]->{'obj'});
+    }
+    
     %current_event = %{$events->[$event_id]};
     # delete not significant keys
     delete @current_event{qw/obj skip/};
