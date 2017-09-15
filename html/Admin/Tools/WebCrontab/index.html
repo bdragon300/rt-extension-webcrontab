@@ -78,32 +78,45 @@ my $i = 0;
 while (defined($crontab->{'events'}->[$i])) {
     my $e = $crontab->{'events'}->[$i];
     my $id = $i + 1;  # one-based
+
+    my @cols = ();
     unless ($e->{'skip'}) {
-        push @$table_rows, {
-            'link' => '/Admin/Tools/WebCrontab/edit.html?id=' . $id,
-            'cols' => [
-                (map {{
+        # Make cells value
+        # Hyperlinks
+        my @values = map { $e->{$_} // '' } qw/expression action template/;
+        @cols = (
+            map {
+                    {  # HASHREF
                         'pre' => '<a href="/Admin/Tools/WebCrontab/edit.html?id=' . $id . '">', 
                         'v' => $_,
                         'post' => '</a>'
-                }}  (
-                        $id,
-                        (
-                            map { defined($e->{$_}) ? loc($e->{$_}) : '' } 
-                                ('expression', 'action', 'template')
-                        ),
-                    )
-                ),
-                
-                {
-                    'v' => $e->{'comment'} // '',
-                    'td_style' => 'width: 30%'
-                },
-
-                $e->{'active'} ? 'Enabled' : 'Disabled'
-            ],
+                    }
+                }  
+            ($id, @values)
+        );
+        # Plain text
+        push @cols, {
+            'v' => $e->{'comment'} // '',
+            'td_style' => 'width: 30%'
         };
+        push @cols, ($e->{'active'} ? 'Enabled' : 'Disabled');
+    } else {
+        my ($command_chunk) = $e->{'obj'}->command =~ /^([^\s]+)/;
+        @cols = (
+            map {
+                    {  # HASHREF
+                        'pre' => '<span style="color: gray;">', 
+                        'v' => $_,
+                        'post' => '</span>'
+                    }
+                }
+            ($id, $e->{'expression'}, ($command_chunk . ' ...'), '', ($e->{'comment'} // ''), 'Skipped')
+        );
     }
+
+    push @$table_rows, {
+        'cols' => [@cols]
+    };
     $i++;
 }
 </%INIT>
