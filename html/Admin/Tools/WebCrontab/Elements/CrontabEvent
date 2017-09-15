@@ -2,6 +2,15 @@
 % @$captions = keys %$filling unless @$captions;
 % $old_data = $data unless defined $old_data;
 %
+<style>
+    .crontab-event .el textarea {
+        width: 100%;
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+        height: 7em;
+    }
+</style>
 <&| /Widgets/TitleBox,title => 'Event', class=>'crontab-event', 'rolledup'=>0 &>
     <div class="elgrp">
         <div class="el">
@@ -50,10 +59,10 @@
         </div>
     </div>
     <div class="elgrp">
-        <div class="el">
+        <div class="el" style="width: 60%; max-width: 500px; min-width: 250px;">
             <div>
                 <span class="label">Comment</span>
-                <textarea name="comment"><% $data->{'comment'} // '' %></textarea>
+                <textarea name="comment" style="height: 7em;"><% $data->{'comment'} // '' %></textarea>
             </div>
             <input type="hidden" name="old-comment" value="<% $old_data->{'comment'} // '' %>" />
         </div>
