@@ -511,7 +511,7 @@ sub _build_events {
             }
         }
 
-        if ($event->{'comment'} ne '') {
+        if (length $event->{'comment'}) {
             my $clean_val = $event->{'comment'} =~ s/\r|\n|\t/ /gr;
             push @cmd_params, '#' . printable($clean_val);
         }
