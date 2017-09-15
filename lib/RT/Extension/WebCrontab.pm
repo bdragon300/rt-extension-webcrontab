@@ -394,6 +394,9 @@ sub _read_events {
         utf8::decode($cmd) unless utf8::is_utf8($cmd);
         my @shwords = shellwords(($cmd));
 
+        $e{'obj'} = $event;
+        $e{'expression'} = $event->datetime;
+
         # Mark as 'skip' non rt-crontool command
         if ($shwords[0] !~ /.*rt-crontool$/) {
             $RT::Logger->info("[RT::Extension::WebCrontab]: Skip event: " . $cmd);
@@ -404,9 +407,7 @@ sub _read_events {
         } else {
             shift @shwords;
         }
-        
-        $e{'obj'} = $event;
-        $e{'expression'} = $event->datetime;
+
         while (@shwords) {
             my $shword = shift @shwords;
 
