@@ -6,7 +6,7 @@ if ( $session{'CurrentUser'}->HasRight( Right => 'ShowConfigTab', Object => RT->
     if ($tools_menu) {
         $tools_menu->child(crontab => 
             title       => loc('Crontab'),
-            description => loc('Configure crontab via web interface'),
+            description => loc('Configure RT user crontab'),
             path        => '/Admin/Tools/WebCrontab',
         );
     }
@@ -17,7 +17,7 @@ if ( $session{'CurrentUser'}->HasRight( Right => 'ShowConfigTab', Object => RT->
     {
         $page_menu->child(select => 
             title       => loc('Select'),
-            description => 'Crontab events and environment variables',
+            description => 'All events and variables',
             path        => RT->Config->Get('WebPath') . '/Admin/Tools/WebCrontab'
         );
         $page_menu->child(create => 

@@ -19,14 +19,27 @@ our $VERSION = '0.1';
 
 =head1 NAME
 
-RT::Extension::WebCrontab allows to manage RT's crontab via web-interface
+RT::Extension::WebCrontab - Manage crontab in the Admin UI
 
 =head1 DESCRIPTION
 
-This extension can manage rt-crontool starting and its parameters in RT's system
-user crontab. Also you can define environment variables in crontab.
+This extension allows RT administrator to manage RT's user crontab in the Admin UI.
 
-Web interface only available for users with SuperUser right.
+Features:
+
+=over
+
+=item * Manipulating the events rt-crontool command and its parameters
+
+=item * Manipulating the environment variables inside crontab
+
+=item * Manual launch of the rt-crontool event with printing results
+
+=item * Showing the other (non rt-crontool) events as read-only
+
+=back
+
+Web interface is only available for users with SuperUser right.
 
 =head1 DEPENDENCIES
 
@@ -35,6 +48,8 @@ Web interface only available for users with SuperUser right.
 =item RT E<gt>= 4.0.0
 
 =item Config::Crontab E<gt>= 1.33
+
+=item String::Escape
 
 =back
 
@@ -54,6 +69,8 @@ May need root permissions
 
 =head1 CONFIGURATION
 
+The extension has no configuration itself.
+
 To use the extension write in RT_SiteConfig.pm following:
 
 For RT E<gt>= 4.2:
@@ -64,10 +81,7 @@ For RT E<gt> 4.2:
 
 C<Set(@Plugins, qw(RT::Extension::WebCrontab));>
 
-After installing you may need to clean Mason cache and restart RT process.
-
-Web interface will be available for users with SuperUser right in 
-AdminE<nbsp>-E<gt>E<nbsp>ToolsE<nbsp>-E<gt>E<nbsp>Crontab.
+After installing you may need to clear Mason cache and restart webserver.
 
 =cut
 
@@ -173,16 +187,16 @@ Returns:
 HASHREF with following data:
 
     {
-    'events' => events array,
-    'env' => environment variables hash,
-    'dump' => crontab dump as string
+    'events' => \@events,
+    'env' => \%variables,
+    'dump' => 'crontab dump as string'
     }
 
 =cut
 
 sub load_crontab {
     my $ct = new Config::Crontab;
-    #TODO: use block.active property
+
     $ct->read || RT::Logger->warning("[RT::Extension::WebCrontab]: User crontab does not exist and will be created");
     if ($ct->error) {
         RT::Logger->error("[RT::Extension::WebCrontab]: Cannot read crontab: " . $ct->error);
@@ -198,7 +212,7 @@ sub load_crontab {
     return \%crontab;
 }
 
-=head2 exec_event(shwords) -> \%results
+=head2 exec_event(\@shwords) -> \%results
 
 Execute given command and return results
 
@@ -216,7 +230,7 @@ HASHREF with following information:
 {
         'stderr' => 'command STDERR',
         'stdout' => 'command STDOUT',
-        'failed' => 'error msg if execute was failed',
+        'failed' => 'error msg when failed or undef if all ok',
         'pid' => 'PID of child process'
         'command' => 'command string that was executed'
 }
@@ -302,7 +316,7 @@ sub save_env {
 
 =head2 save_crontab(old_crontab, \@events=>undef, \%env=>undef) -> (success, error_msg)
 
-Saves crontab
+Saves crontab. Omitted optional parameters will be replaces the same ones from old_crontab.
 
 Parameters:
 
@@ -325,7 +339,7 @@ sub save_crontab {
         env => undef,    # type: HASHREF
         @_
     );
-    #TODO: use block.active property
+    
     my $events = _build_events($args{events} // $old_crontab->{'events'} // []);
 
     my %vars = %{ $args{env} // $old_crontab->{'env'} // {} };
@@ -356,7 +370,7 @@ Parameters:
 
 Returns:
 
-ARRAYREF to event hash array:
+ARRAYREF to array with hashes:
 
     {
     'active' => whether event is active (commented event means inactive state)
@@ -443,7 +457,7 @@ Parameters:
 
 Returns:
 
-HASHREF with variables value
+HASHREF with variables value: {'variable' => value}
 
 =cut
 
@@ -464,7 +478,7 @@ sub _read_env {
 
 =head2 _build_events(\@events) -> \@event_objects
 
-Builds Config::Crontab::Event objects from events structure. See _read_events docs
+Builds Config::Crontab::Event objects from event structures. See also _read_events docs
 
 Parameters:
 
@@ -476,7 +490,7 @@ Parameters:
 
 Returns:
 
-Config::Crontab::Event array
+ARRAYREF to array with Config::Crontab::Event objects
 
 =cut
 
@@ -543,7 +557,7 @@ Parameters:
 
 Returns:
 
-Config::Crontab::Env array
+ARRAYREF to array with Config::Crontab::Env objects
 
 =cut
 
