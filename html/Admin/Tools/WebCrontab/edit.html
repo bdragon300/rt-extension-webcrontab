@@ -21,9 +21,18 @@
 %   if ($Create == 0) {
         <& Elements/CrontabManualExec, exec_result => $exec_result &>
 %   }    
-    <& /Elements/Submit, Name => 'submit', Label => loc('Save Changes') &>
+
 %   if ($Create == 0) {
-        <& /Elements/Submit, Name => 'remove', Label => loc('REMOVE'), OnClick => "return confirm('" . loc("Do you want to remove event?") . "');" &>
+    <& /Elements/Submit, 
+        Name => 'submit', 
+        Label => loc('Save Changes'), 
+        Back => 1,
+        BackName => 'remove', 
+        BackLabel => loc('Remove event'),
+        BackOnClick => "return confirm('" . loc("Do you want to remove event?") . "');"
+    &>
+%   } else {
+    <& /Elements/Submit, Name => 'submit', Label => loc('Save Changes') &>
 %   }
     
 </form>
