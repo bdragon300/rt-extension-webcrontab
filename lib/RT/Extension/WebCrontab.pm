@@ -414,6 +414,15 @@ sub _read_events {
         while (@shwords) {
             my $shword = shift @shwords;
 
+            # Comment has met
+            if ($shword =~ /^#/) {
+                $shword =~ s/^#//;
+                $e{'comment'} = join ' ', ($shword, @shwords);
+                last;
+            }
+
+            push @event_shellwords, $shword;
+
             # If rt-crontool then parse parameters
             unless ($e{'skip'}) {
                 if (my @c = grep { $shword eq ('--' . $_) } @classes) {
@@ -422,17 +431,12 @@ sub _read_events {
                     $e{$class} = '';
                     next if (exists($shwords[0]) && $shwords[0] =~ /^--/); # no value for current parameter
 
-                    $e{$class} = unquote(shift @shwords); # unescape made by shellwords
+                    my $next_shword = unquote(shift @shwords);  # unescape made by shellwords
+                    push @event_shellwords, $next_shword;
+                    $e{$class} = $next_shword;
                 }
             }
             
-            # Comment has met
-            if ($shword =~ /^#/) {
-                $shword =~ s/^#//;
-                $e{'comment'} = join ' ', ($shword, @shwords);
-                last;
-            }
-            push @event_shellwords, $shword;
         }
 
         $e{'shellwords'} = [@event_shellwords];
