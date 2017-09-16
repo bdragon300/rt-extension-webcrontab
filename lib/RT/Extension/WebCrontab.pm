@@ -198,15 +198,15 @@ sub load_crontab {
     return \%crontab;
 }
 
-=head2 exec_event(event_object) -> \%results
+=head2 exec_event(shwords) -> \%results
 
-Executes command from given event and returns result.
+Execute given command and return results
 
 Parameters:
 
 =over
 
-=item event_object
+=item shwords - ARRAYREF with command shellwords
 
 =back
 
@@ -218,30 +218,20 @@ HASHREF with following information:
         'stdout' => 'command STDOUT',
         'failed' => 'error msg if execute was failed',
         'pid' => 'PID of child process'
-        'command' => 'command string'
+        'command' => 'command string that was executed'
 }
 
 =cut
 
 sub exec_event {
-    my $event_obj = shift;
-
-    # Convert command to a shellwords array, cut off comment
-    my $dirty_cmd = $event_obj->command;
-    my @shwords = shellwords(($dirty_cmd));
-    my @clean_cmd;
-    while (@shwords) {
-        $_ = shift @shwords;
-        last if /^#/;  # Stop on comment begin
-        push @clean_cmd, $_;
-    }
+    my $shwords = shift;
 
     my %cmd_result = (
         'stderr' => undef,
         'stdout' => undef,
         'failed' => undef,
         'pid' => undef,
-        'command' => join ' ', map { qprintable($_) } @clean_cmd
+        'command' => join ' ', map { qprintable($_) } @$shwords  # Quotation
     );
 
     my ($infh, $outfh, $errfh);
@@ -249,7 +239,7 @@ sub exec_event {
     my $pid;
 
     eval{
-        $pid = open3($infh, $outfh, $errfh, @clean_cmd);
+        $pid = open3($infh, $outfh, $errfh, @$shwords);
     };
     if ($@) {
         $cmd_result{'failed'} = 'Launch has failed, see logs for details';
@@ -369,10 +359,12 @@ Returns:
 ARRAYREF to event hash array:
 
     {
-    'skip' => 0,  # 1 when not rt-crontool command
-    'obj' => Config::Crontab::Event object,
+    'active' => whether event is active (commented event means inactive state)
     'expression' => crontab expression,
-    arg => value, # rt-crontool parameters, see @classes package var
+    'shellwords' => ARRAYREF with extracted command shellwords (without comment)
+    'comment' => comment (shellwords following the #)
+    'skip' => 0,  # 1 event contains another command (not rt-crontool), skip it to manage
+    arg => value, # rt-crontool parameters ('action'=>..., 'action-arg'=>..., etc.), see @classes package var
     ...
     }
 
@@ -384,18 +376,15 @@ sub _read_events {
 
     foreach my $event ($crontab->select( -type => 'event' )) {
         my %e = (
-            'skip' => 0,
-            'obj' => undef,
-            'expression' => undef,
             'active' => $event->active,
-            'comment' => undef
+            'expression' => $event->datetime,
+            'shellwords' => undef,  # ARRAYREF
+            'comment' => undef,
+            'skip' => 0,
         );
         my $cmd = $event->command;
         utf8::decode($cmd) unless utf8::is_utf8($cmd);
         my @shwords = shellwords(($cmd));
-
-        $e{'obj'} = $event;
-        $e{'expression'} = $event->datetime;
 
         # Mark as 'skip' non rt-crontool command
         if ($shwords[0] !~ /.*rt-crontool$/) {
@@ -406,11 +395,12 @@ sub _read_events {
             # next;
         }
 
-        shift @shwords; # Remove command
+        my @event_shellwords = (shift @shwords); # Cmd exe
 
         while (@shwords) {
             my $shword = shift @shwords;
 
+            # If rt-crontool then parse parameters
             unless ($e{'skip'}) {
                 if (my @c = grep { $shword eq ('--' . $_) } @classes) {
                     my $class = $c[0];
@@ -421,13 +411,17 @@ sub _read_events {
                     $e{$class} = unquote(shift @shwords); # unescape made by shellwords
                 }
             }
+            
+            # Comment has met
             if ($shword =~ /^#/) {
                 $shword =~ s/^#//;
                 $e{'comment'} = join ' ', ($shword, @shwords);
-                @shwords = ();
+                last;
             }
+            push @event_shellwords, $shword;
         }
 
+        $e{'shellwords'} = [@event_shellwords];
         push @events, clone(\%e);
     }
 
@@ -489,30 +483,31 @@ Config::Crontab::Event array
 sub _build_events {
     my $events = shift;
 
-    my $cmd_exe = _get_crontool_path();
     my @res = ();
 
     for my $event (@$events) {
         my @cmd_params = ();
 
-        # Write non rt-crontool call in its original form
-        if ($event->{'skip'}) {
-            push @res, $event->{'obj'} if (ref($event->{'obj'}));
-            next;
-        }
+        unless ($event->{'skip'}) {
+            my $cmd_exe = _get_crontool_path();
+            push @cmd_params, $cmd_exe;
 
-        for my $class (grep !/-arg$/, @classes) {
-            next unless exists($event->{$class});
+            for my $class (grep !/-arg$/, @classes) {
+                next unless exists($event->{$class});
 
-            push @cmd_params, '--' . $class;
-            my $clean_val = $event->{$class} =~ s/\r|\n|\t/ /gr;
-            push @cmd_params, qprintable($clean_val);
-
-            if (exists($event->{$class . '-arg'})) {
-                push @cmd_params, '--' . $class . '-arg';
-                $clean_val = $event->{$class . '-arg'} =~ s/\r|\n|\t/ /gr;
+                push @cmd_params, '--' . $class;
+                my $clean_val = $event->{$class} =~ s/\r|\n|\t/ /gr;
                 push @cmd_params, qprintable($clean_val);
+
+                if (exists($event->{$class . '-arg'})) {
+                    push @cmd_params, '--' . $class . '-arg';
+                    $clean_val = $event->{$class . '-arg'} =~ s/\r|\n|\t/ /gr;
+                    push @cmd_params, qprintable($clean_val);
+                }
             }
+        } else {
+            # Keep command as-is for non-rt-crontool event
+            @cmd_params = @{$event->{'shellwords'}};
         }
 
         if (length $event->{'comment'}) {
@@ -520,7 +515,7 @@ sub _build_events {
             push @cmd_params, '#' . printable($clean_val);
         }
 
-        my $cmd = join(' ', ($cmd_exe, @cmd_params));
+        my $cmd = join(' ', @cmd_params);
         my $expression = $event->{'expression'};
         my $is_active = $event->{'active'} ? 1 : 0;
         push @res, new Config::Crontab::Event(

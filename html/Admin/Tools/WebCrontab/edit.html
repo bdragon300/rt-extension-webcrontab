@@ -64,12 +64,12 @@ unless ($Create) {
 
 unless ($Create) {
     if ($ARGS{'launch'}) {
-        $exec_result = RT::Extension::WebCrontab::exec_event($events->[$event_id]->{'obj'});
+        $exec_result = RT::Extension::WebCrontab::exec_event($events->[$event_id]->{'shellwords'});
     }
     
     %current_event = %{$events->[$event_id]};
     # delete not significant keys
-    delete @current_event{qw/obj skip/};
+    delete @current_event{qw/skip shellwords/};
     #delete keys with undef values, i.e. ignore crontool parameters without args
     delete @current_event{grep ! defined $current_event{$_}, keys %current_event}; 
 }

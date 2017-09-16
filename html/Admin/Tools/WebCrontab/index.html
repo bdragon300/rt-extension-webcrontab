@@ -101,7 +101,7 @@ while (defined($crontab->{'events'}->[$i])) {
         };
         push @cols, ($e->{'active'} ? 'Enabled' : 'Disabled');
     } else {
-        my ($command_chunk) = $e->{'obj'}->command =~ /^([^\s]+)/;
+        my $command_exe = $e->{'shellwords'}->[0];
         @cols = (
             map {
                     {  # HASHREF
@@ -110,7 +110,7 @@ while (defined($crontab->{'events'}->[$i])) {
                         'post' => '</span>'
                     }
                 }
-            ($id, $e->{'expression'}, ($command_chunk . ' ...'), '', ($e->{'comment'} // ''), 'Skipped')
+            ($id, $e->{'expression'}, ($command_exe . ' ...'), '', ($e->{'comment'} // ''), 'Skipped')
         );
     }
 
