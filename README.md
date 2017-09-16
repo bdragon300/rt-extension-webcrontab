@@ -46,3 +46,22 @@ Set(@Plugins, qw(RT::Extension::WebCrontab));
 ```
 
 After installing you may need to clear Mason cache and restart webserver.
+
+# Author
+
+Igor Derkach, <gosha753951@gmail.com>
+
+
+# Bugs
+
+Please report any bugs or feature requests to the author.
+
+
+# Copyright and license
+
+Copyright 2017 Igor Derkach, <https://github.com/bdragon300/>
+
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+
+Request Tracker (RT) is Copyright Best Practical Solutions, LLC.

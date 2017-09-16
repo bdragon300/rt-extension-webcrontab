@@ -83,6 +83,21 @@ C<Set(@Plugins, qw(RT::Extension::WebCrontab));>
 
 After installing you may need to clear Mason cache and restart webserver.
 
+=head1 AUTHOR
+
+Igor Derkach E<lt>gosha753951@gmail.comE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2017 Igor Derkach, E<lt>https://github.com/bdragon300/E<gt>
+
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+
+Request Tracker (RT) is Copyright Best Practical Solutions, LLC.
+
+=head1 METHODS
+
 =cut
 
 my @classes = qw(search search-arg condition condition-arg action action-arg template transaction transaction-type);
